@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Erreur - Tech Companies Database{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2 style="color: #f44336;">Une erreur est survenue</h2>
+    <a href="/" class="btn btn-primary">← Retour à l'accueil</a>
+</div>
+
+<div class="card" style="text-align: center; padding: 3rem;">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+    <h3 style="color: #f44336; margin-bottom: 1rem;">Oops ! Quelque chose s'est mal passé</h3>
+    
+    {% if error %}
+    <div style="background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.3); border-radius: 8px; padding: 1rem; margin: 2rem 0; text-align: left;">
+        <strong style="color: #f44336;">Détails de l'erreur :</strong><br>
+        <code style="color: #e0e0e0; font-size: 0.9rem; word-break: break-all;">{{ error }}</code>
+    </div>
+    {% endif %}
+    
+    <p style="color: #9e9e9e; margin-bottom: 2rem;">
+        Cette erreur peut être due à une mise à jour récente de la base de données.<br>
+        Essayez de redémarrer l'application ou contactez l'administrateur.
+    </p>
+    
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="/" class="btn btn-primary">Retour à l'accueil</a>
+        <a href="/companies/new" class="btn btn-secondary">Nouvelle entreprise</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} - Tech Companies Database{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <a href="/" style="color: #64b5f6; text-decoration: none; font-size: 0.9rem;">← Retour à la liste</a>
+        <h2 style="color: #64b5f6; margin: 0.5rem 0;">{{ company.name }}</h2>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="/companies/{{ company.id }}/edit" class="btn btn-primary">Éditer</a>
+        <a href="/companies/new" class="btn btn-secondary">+ Nouvelle entreprise</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+    <!-- Main Content -->
+    <div>
+        <!-- Basic Info Card -->
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Informations générales</h3>
+            
+            {% if company.description %}
+            <p style="color: #e0e0e0; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                {{ company.description }}
+            </p>
+            {% endif %}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                {% if company.website %}
+                <div>
+                    <strong style="color: #64b5f6;">Site web:</strong><br>
+                    <a href="{{ company.website }}" target="_blank" style="color: #4caf50; text-decoration: none;">
+                        {{ company.website }}
+                    </a>
+                </div>
+                {% endif %}
+                {% if company.location %}
+                <div>
+                    <strong style="color: #64b5f6;">Localisation:</strong><br>
+                    <span>📍 {{ company.location }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tags Display -->
+            <div style="margin-bottom: 1.5rem;">
+                <strong style="color: #64b5f6;">Secteur:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                    {% if company.get_secteur_tags() %}
+                        {% for tag in company.get_secteur_tags() %}
+                            <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.8rem; font-weight: 500;">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="color: #9e9e9e; font-style: italic;">Aucun secteur défini</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <strong style="color: #64b5f6;">Core Business:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                    {% if company.get_core_business_tags() %}
+                        {% for tag in company.get_core_business_tags() %}
+                            <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.8rem; font-weight: 500;">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="color: #9e9e9e; font-style: italic;">Aucun core business défini</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Criteria badges -->
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.5rem 1rem; border-radius: 16px; font-size: 0.9rem; font-weight: 500;">
+                    High Profile: {{ company.high_profile }}/5
+                </span>
+                <span style="background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 0.5rem 1rem; border-radius: 16px; font-size: 0.9rem; font-weight: 500;">
+                    {{ company.work_intensity.title() }}
+                </span>
+                <span style="background: rgba(156, 39, 176, 0.2); color: #9c27b0; padding: 0.5rem 1rem; border-radius: 16px; font-size: 0.9rem; font-weight: 500;">
+                    {{ company.company_size.title() }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Founders Card -->
+        {% if company.founders %}
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Fondateurs</h3>
+            <div style="display: grid; gap: 1rem;">
+                {% for founder in company.founders %}
+                <div style="background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                        <strong style="color: #64b5f6; font-size: 1.1rem;">{{ founder.name }}</strong>
+                        {% if founder.title %}
+                        <span style="color: #9e9e9e; font-size: 0.9rem;">{{ founder.title }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if founder.background_type == 'education' and founder.education_institution %}
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong style="color: #4caf50; font-size: 0.9rem;">Éducation:</strong>
+                        <div style="color: #e0e0e0; margin-left: 1rem;">
+                            <div>🎓 {{ founder.education_institution }}</div>
+                            {% if founder.education_degree %}
+                            <div>📜 {{ founder.education_degree }}</div>
+                            {% endif %}
+                            {% if founder.education_field %}
+                            <div>🔬 {{ founder.education_field }}</div>
+                            {% endif %}
+                            {% if founder.education_year %}
+                            <div>📅 {{ founder.education_year }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if founder.background_type == 'professional' and founder.professional_company %}
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong style="color: #ff9800; font-size: 0.9rem;">Expérience Professionnelle:</strong>
+                        <div style="color: #e0e0e0; margin-left: 1rem;">
+                            <div>🏢 {{ founder.professional_company }}</div>
+                            {% if founder.professional_position %}
+                            <div>💼 {{ founder.professional_position }}</div>
+                            {% endif %}
+                            {% if founder.professional_duration %}
+                            <div>⏱️ {{ founder.professional_duration }}</div>
+                            {% endif %}
+                            {% if founder.professional_description %}
+                            <div style="margin-top: 0.5rem; font-style: italic;">{{ founder.professional_description }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if founder.background %}
+                    <div style="color: #9e9e9e; font-size: 0.9rem; font-style: italic;">
+                        {{ founder.background }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Investors Card -->
+        {% if company.investors %}
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Investisseurs</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                {% for investor in company.investors %}
+                <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.5rem 1rem; border-radius: 16px; font-size: 0.9rem;">
+                    {{ investor.name }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Financial Info Card -->
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Données financières</h3>
+            
+            {% if company.founded_year %}
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: #64b5f6;">Année de création:</strong><br>
+                <span style="font-size: 1.2rem;">📅 {{ company.founded_year }}</span>
+            </div>
+            {% endif %}
+            
+            {% if company.last_funding %}
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: #64b5f6;">Dernier funding:</strong><br>
+                <span style="font-size: 1.1rem; color: #4caf50;">💰 {{ company.last_funding }}</span>
+            </div>
+            {% endif %}
+            
+            {% if not company.founded_year and not company.last_funding %}
+            <p style="color: #9e9e9e; font-style: italic;">Aucune donnée financière disponible</p>
+            {% endif %}
+        </div>
+
+        <!-- Metadata Card -->
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Métadonnées</h3>
+            
+            <div style="margin-bottom: 0.5rem;">
+                <strong style="color: #64b5f6;">Créé le:</strong><br>
+                <span style="font-size: 0.9rem; color: #9e9e9e;">
+                    {{ company.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                </span>
+            </div>
+            
+            <div>
+                <strong style="color: #64b5f6;">Modifié le:</strong><br>
+                <span style="font-size: 0.9rem; color: #9e9e9e;">
+                    {{ company.updated_at.strftime('%d/%m/%Y à %H:%M') }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Actions Card -->
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Actions</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="/companies/{{ company.id }}/edit" class="btn btn-primary" style="text-align: center;">
+                    ✏️ Éditer l'entreprise
+                </a>
+                <a href="/companies/new" class="btn btn-secondary" style="text-align: center;">
+                    ➕ Nouvelle entreprise
+                </a>
+                <a href="/" class="btn btn-secondary" style="text-align: center;">
+                    📋 Retour à la liste
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
