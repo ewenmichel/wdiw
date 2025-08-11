@@ -244,6 +244,28 @@ def create_tag(tag: models.TagCreate, db: Session = Depends(database.get_db)):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+# Person API Routes
+@app.get("/api/persons/search")
+def search_persons(q: str, limit: int = 10, db: Session = Depends(database.get_db)):
+    try:
+        # Simple contains search on Person names
+        persons = db.query(database.Person).filter(database.Person.name.contains(q)).limit(limit).all()
+        return [{"id": p.id, "name": p.name} for p in persons]
+    except Exception as e:
+        print(f"Error searching persons: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/persons")
+def list_persons(limit: int = 200, db: Session = Depends(database.get_db)):
+    try:
+        persons = db.query(database.Person).order_by(database.Person.name).limit(limit).all()
+        return [{"id": p.id, "name": p.name} for p in persons]
+    except Exception as e:
+        print(f"Error listing persons: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Web Interface Routes with better error handling
 @app.get("/", response_class=HTMLResponse)
 def read_companies_web(request: Request, db: Session = Depends(database.get_db)):
@@ -261,6 +283,58 @@ def new_company_form(request: Request):
         return templates.TemplateResponse("form.html", {"request": request, "company": None})
     except Exception as e:
         print(f"Error showing new company form: {e}")
+        traceback.print_exc()
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)})
+
+@app.post("/companies/new")
+def create_company_form(
+    request: Request,
+    name: str = Form(...),
+    website: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    sector: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    high_profile: int = Form(3),
+    remuneration: int = Form(3),
+    work_intensity: str = Form("balanced"),
+    company_size: str = Form("startup"),
+    founded_year: Optional[int] = Form(None),
+    last_funding: Optional[str] = Form(None),
+    db: Session = Depends(database.get_db)
+):
+    """Fallback route for form submission if JavaScript fails"""
+    try:
+        print(f"Creating company via form submission: {name}")
+        
+        # Create company data
+        company_data = models.CompanyCreate(
+            name=name,
+            website=website,
+            description=description,
+            sector=models.SectorEnum(sector) if sector else None,
+            location=location,
+            high_profile=high_profile,
+            remuneration=remuneration,
+            work_intensity=models.WorkIntensityEnum(work_intensity),
+            company_size=models.CompanySizeEnum(company_size),
+            founded_year=founded_year,
+            last_funding=last_funding,
+            founders=[],
+            investors=[],
+            secteur_tags=[],
+            core_business_tags=[],
+            relations=[]
+        )
+        
+        # Create company
+        company = crud.create_company(db=db, company=company_data)
+        print(f"Successfully created company via form: {company.id}")
+        
+        # Redirect to home page
+        return RedirectResponse(url="/", status_code=303)
+        
+    except Exception as e:
+        print(f"Error creating company via form: {e}")
         traceback.print_exc()
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)})
 
@@ -307,4 +381,4 @@ def startup_event():
 if __name__ == "__main__":
     import uvicorn
     print("Starting FastAPI application...")
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug")
+    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="debug")

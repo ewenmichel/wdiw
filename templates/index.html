@@ -3,7 +3,15 @@
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
     <h2 style="color: #64b5f6;">Entreprises Tech Françaises</h2>
-    <a href="/companies/new" class="btn btn-primary">+ Nouvelle entreprise</a>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: #9e9e9e; font-size: 0.9rem;">Mode:</span>
+            <button id="modeToggle" class="btn btn-secondary" onclick="toggleMode()">
+                <span id="modeText">👁️ Normal</span>
+            </button>
+        </div>
+        <a href="/companies/new" class="btn btn-primary" id="addButton" style="display: none;">+ Nouvelle entreprise</a>
+    </div>
 </div>
 
 <div style="display: grid; gap: 1rem;">
@@ -39,6 +47,30 @@
                     <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
                         High Profile: {{ company.high_profile }}/5
                     </span>
+                    
+                    <!-- Rémunération avec gradient de couleur -->
+                    {% if company.remuneration == 1 %}
+                    <span style="background: rgba(244, 67, 54, 0.2); color: #f44336; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
+                        💰 Underpaying
+                    </span>
+                    {% elif company.remuneration == 2 %}
+                    <span style="background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
+                        💰 Below Market
+                    </span>
+                    {% elif company.remuneration == 3 %}
+                    <span style="background: rgba(255, 193, 7, 0.2); color: #ffc107; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
+                        💰 At Market
+                    </span>
+                    {% elif company.remuneration == 4 %}
+                    <span style="background: rgba(139, 195, 74, 0.2); color: #8bc34a; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
+                        💰 Over Market
+                    </span>
+                    {% elif company.remuneration == 5 %}
+                    <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
+                        💰 Overpaying
+                    </span>
+                    {% endif %}
+                    
                     <span style="background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
                         {{ company.work_intensity.title() }}
                     </span>
@@ -59,8 +91,14 @@
             </div>
             
             <div style="display: flex; gap: 0.5rem;">
+                <!-- Bouton Voir - toujours visible -->
                 <a href="/companies/{{ company.id }}" class="btn btn-secondary">Voir</a>
-                <a href="/companies/{{ company.id }}/edit" class="btn btn-secondary">Éditer</a>
+                
+                <!-- Boutons d'édition - seulement en mode édition -->
+                <div class="edit-buttons" style="display: none; gap: 0.5rem;">
+                    <a href="/companies/{{ company.id }}/edit" class="btn btn-secondary">Éditer</a>
+                    <button type="button" class="btn btn-danger" onclick="deleteCompany({{ company.id }}, '{{ company.name }}')">Supprimer</button>
+                </div>
             </div>
         </div>
     </div>
@@ -74,4 +112,82 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// Mode management
+let isEditMode = false;
+
+function toggleMode() {
+    isEditMode = !isEditMode;
+    updateModeDisplay();
+}
+
+function updateModeDisplay() {
+    const modeText = document.getElementById('modeText');
+    const modeToggle = document.getElementById('modeToggle');
+    const addButton = document.getElementById('addButton');
+    const editButtons = document.querySelectorAll('.edit-buttons');
+    const cards = document.querySelectorAll('.card');
+    
+    if (isEditMode) {
+        // Mode édition
+        modeText.textContent = '✏️ Édition';
+        modeToggle.className = 'btn btn-primary';
+        addButton.style.display = 'inline-block';
+        
+        // Afficher tous les boutons d'édition
+        editButtons.forEach(buttons => {
+            buttons.style.display = 'flex';
+        });
+        
+        // Ajouter une bordure orange aux cartes en mode édition
+        cards.forEach(card => {
+            card.style.border = '2px solid rgba(255, 152, 0, 0.5)';
+            card.style.boxShadow = '0 0 10px rgba(255, 152, 0, 0.2)';
+        });
+        
+    } else {
+        // Mode normal
+        modeText.textContent = '👁️ Normal';
+        modeToggle.className = 'btn btn-secondary';
+        addButton.style.display = 'none';
+        
+        // Masquer tous les boutons d'édition
+        editButtons.forEach(buttons => {
+            buttons.style.display = 'none';
+        });
+        
+        // Retirer la bordure orange
+        cards.forEach(card => {
+            card.style.border = '1px solid rgba(100, 181, 246, 0.2)';
+            card.style.boxShadow = 'none';
+        });
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateModeDisplay();
+});
+
+async function deleteCompany(companyId, companyName) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer "${companyName}" ? Cette action est irréversible.`)) {
+        try {
+            const response = await fetch(`/api/companies/${companyId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Reload the page to update the list
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert('Erreur lors de la suppression: ' + (error.detail || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            alert('Erreur réseau: ' + error.message);
+        }
+    }
+}
+</script>
 {% endblock %}

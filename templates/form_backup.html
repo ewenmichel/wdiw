@@ -1,0 +1,1295 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if company %}Éditer {{ company.name }}{% else %}Nouvelle entreprise{% endif %} - Tech Companies Database
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2 style="color: #64b5f6;">
+        {% if company %}Éditer {{ company.name }}{% else %}Nouvelle entreprise{% endif %}
+    </h2>
+    <a href="{% if company %}/companies/{{ company.id }}{% else %}/{% endif %}" class="btn btn-secondary">← Annuler</a>
+</div>
+
+<form id="companyForm" method="post" action="{% if company %}/companies/{{ company.id }}/edit{% else %}/companies/new{% endif %}" style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+    <!-- Main Form -->
+    <div>
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Informations de base</h3>
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="name">Nom de l'entreprise *</label>
+                    <input type="text" id="name" name="name" required 
+                           value="{% if company %}{{ company.name }}{% endif %}">
+                </div>
+                <div class="form-group">
+                    <label for="website">Site web</label>
+                    <input type="url" id="website" name="website" 
+                           value="{% if company %}{{ company.website or '' }}{% endif %}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="3">{% if company %}{{ company.description or '' }}{% endif %}</textarea>
+            </div>
+
+            <!-- New Tag System -->
+            <div class="form-group">
+                <label for="secteur_tags">Secteur</label>
+                <div class="tag-input-container" data-category="secteur">
+                    <div class="tag-display" id="secteur-tags">
+                        {% if company and company.get_secteur_tags() %}
+                            {% for tag in company.get_secteur_tags() %}
+                            <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
+                                {{ tag.name }}
+                                <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
+                            </span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="tag-input-wrapper">
+                        <input type="text" class="tag-input" placeholder="Ajoutez des tags de secteur..." data-category="secteur" autocomplete="off">
+                        <div class="tag-suggestions" id="secteur-suggestions"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="core_business_tags">Core Business</label>
+                <div class="tag-input-container" data-category="core_business">
+                    <div class="tag-display" id="core_business-tags">
+                        {% if company and company.get_core_business_tags() %}
+                            {% for tag in company.get_core_business_tags() %}
+                            <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
+                                {{ tag.name }}
+                                <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
+                            </span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="tag-input-wrapper">
+                        <input type="text" class="tag-input" placeholder="Ajoutez des tags de core business..." data-category="core_business" autocomplete="off">
+                        <div class="tag-suggestions" id="core_business-suggestions"></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="form-group">
+                <label for="location">Localisation</label>
+                <input type="text" id="location" name="location" 
+                       value="{% if company %}{{ company.location or '' }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Critères personnalisés</h3>
+            
+            <div class="grid-4">
+                <div class="form-group">
+                    <label for="high_profile">High Profile (1-5)</label>
+                    <input type="range" id="high_profile" name="high_profile" min="1" max="5" 
+                           value="{% if company %}{{ company.high_profile }}{% else %}3{% endif %}">
+                    <span id="high_profile_display">{% if company %}{{ company.high_profile }}{% else %}3{% endif %}/5</span>
+                </div>
+                <div class="form-group">
+                    <label for="remuneration">Rémunération (1-5)</label>
+                    <input type="range" id="remuneration" name="remuneration" min="1" max="5" 
+                           value="{% if company %}{{ company.remuneration or 3 }}{% else %}3{% endif %}">
+                    <span id="remuneration_display">
+                        {% if company and company.remuneration %}
+                            {% if company.remuneration == 1 %}Underpaying
+                            {% elif company.remuneration == 2 %}Below Market
+                            {% elif company.remuneration == 3 %}At Market
+                            {% elif company.remuneration == 4 %}Over Market
+                            {% elif company.remuneration == 5 %}Overpaying
+                            {% endif %}
+                        {% else %}At Market{% endif %}
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label for="work_intensity">Work Intensity</label>
+                    <select id="work_intensity" name="work_intensity">
+                        <option value="chill" {% if company and company.work_intensity == 'chill' %}selected{% endif %}>Chill</option>
+                        <option value="balanced" {% if not company or company.work_intensity == 'balanced' %}selected{% endif %}>Balanced</option>
+                        <option value="intense" {% if company and company.work_intensity == 'intense' %}selected{% endif %}>Intense</option>
+                        <option value="bourrin" {% if company and company.work_intensity == 'bourrin' %}selected{% endif %}>Bourrin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="company_size">Taille</label>
+                    <select id="company_size" name="company_size">
+                        <option value="early" {% if company and company.company_size == 'early' %}selected{% endif %}>Early (0-10)</option>
+                        <option value="startup" {% if not company or company.company_size == 'startup' %}selected{% endif %}>Startup (10-50)</option>
+                        <option value="scaleup" {% if company and company.company_size == 'scaleup' %}selected{% endif %}>Scale-up (50-200)</option>
+                        <option value="corp" {% if company and company.company_size == 'corp' %}selected{% endif %}>Corp (200+)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Founders</h3>
+            <div id="founders-section">
+                {% if company and company.founders %}
+                    {% for founder in company.founders %}
+                    <div class="founder-item" style="background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Nom</label>
+                                <input type="text" name="founder_name" value="{{ founder.name }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Titre</label>
+                                <input type="text" name="founder_title" value="{{ founder.title or '' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Type de background</label>
+                            <select name="background_type" onchange="toggleBackgroundFields(this)">
+                                <option value="">Sélectionner un type</option>
+                                <option value="education" {% if founder.background_type == 'education' %}selected{% endif %}>Éducation</option>
+                                <option value="professional" {% if founder.background_type == 'professional' %}selected{% endif %}>Professionnel</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Education Background -->
+                        <div class="education-fields" style="display: {% if founder.background_type == 'education' %}block{% else %}none{% endif %};">
+                            <h4 style="color: #64b5f6; margin: 1rem 0 0.5rem 0; font-size: 0.9rem;">Éducation</h4>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Institution</label>
+                                    <input type="text" name="education_institution" value="{{ founder.education_institution or '' }}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Diplôme</label>
+                                    <input type="text" name="education_degree" value="{{ founder.education_degree or '' }}">
+                                </div>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Domaine</label>
+                                    <input type="text" name="education_field" value="{{ founder.education_field or '' }}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Année</label>
+                                    <input type="number" name="education_year" value="{{ founder.education_year or '' }}">
+                                </div>
+                            </div>
+                            
+                            <!-- Education Tags -->
+                            <div class="form-group">
+                                <label>Écoles/Institutions (tags)</label>
+                                <div class="tag-input-container" data-category="education">
+                                    <div class="tag-display" id="education-tags-{{ loop.index0 }}">
+                                        {% if founder.get_education_tags %}
+                                            {% for tag in founder.get_education_tags() %}
+                                            <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
+                                                {{ tag.name }}
+                                                <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
+                                            </span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="tag-input-wrapper">
+                                        <input type="text" class="tag-input" placeholder="Ajoutez des écoles/institutions..." data-category="education" data-founder-index="{{ loop.index0 }}" autocomplete="off">
+                                        <div class="tag-suggestions" id="education-suggestions-{{ loop.index0 }}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Professional Background -->
+                        <div class="professional-fields" style="display: {% if founder.background_type == 'professional' %}block{% else %}none{% endif %};">
+                            <h4 style="color: #64b5f6; margin: 1rem 0 0.5rem 0; font-size: 0.9rem;">Expérience Professionnelle</h4>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Entreprise</label>
+                                    <input type="text" name="professional_company" value="{{ founder.professional_company or '' }}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Poste</label>
+                                    <input type="text" name="professional_position" value="{{ founder.professional_position or '' }}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Durée</label>
+                                <input type="text" name="professional_duration" placeholder="ex: 2019-2022" value="{{ founder.professional_duration or '' }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea name="professional_description" rows="2">{{ founder.professional_description or '' }}</textarea>
+                            </div>
+                            
+                            <!-- Professional Tags -->
+                            <div class="form-group">
+                                <label>Entreprises précédentes (tags)</label>
+                                <div class="tag-input-container" data-category="professional">
+                                    <div class="tag-display" id="professional-tags-{{ loop.index0 }}">
+                                        {% if founder.get_professional_tags %}
+                                            {% for tag in founder.get_professional_tags() %}
+                                            <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
+                                                {{ tag.name }}
+                                                <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
+                                            </span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                    <div class="tag-input-wrapper">
+                                        <input type="text" class="tag-input" placeholder="Ajoutez des entreprises..." data-category="professional" data-founder-index="{{ loop.index0 }}" autocomplete="off">
+                                        <div class="tag-suggestions" id="professional-suggestions-{{ loop.index0 }}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Legacy Background (for backward compatibility) -->
+                        <div class="form-group">
+                            <label>Background libre (optionnel)</label>
+                            <input type="text" name="founder_background" value="{{ founder.background or '' }}" placeholder="Information supplémentaire...">
+                        </div>
+                        
+                        <button type="button" class="btn btn-danger" onclick="removeFounder(this)">Supprimer</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="founder-item" style="background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Nom</label>
+                                <input type="text" name="founder_name">
+                            </div>
+                            <div class="form-group">
+                                <label>Titre</label>
+                                <input type="text" name="founder_title">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Type de background</label>
+                            <select name="background_type" onchange="toggleBackgroundFields(this)">
+                                <option value="">Sélectionner un type</option>
+                                <option value="education">Éducation</option>
+                                <option value="professional">Professionnel</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Education Background -->
+                        <div class="education-fields" style="display: none;">
+                            <h4 style="color: #64b5f6; margin: 1rem 0 0.5rem 0; font-size: 0.9rem;">Éducation</h4>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Institution</label>
+                                    <input type="text" name="education_institution">
+                                </div>
+                                <div class="form-group">
+                                    <label>Diplôme</label>
+                                    <input type="text" name="education_degree">
+                                </div>
+                            </div>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Domaine</label>
+                                    <input type="text" name="education_field">
+                                </div>
+                                <div class="form-group">
+                                    <label>Année</label>
+                                    <input type="number" name="education_year">
+                                </div>
+                            </div>
+                            
+                            <!-- Education Tags -->
+                            <div class="form-group">
+                                <label>Écoles/Institutions (tags)</label>
+                                <div class="tag-input-container" data-category="education">
+                                    <div class="tag-display" id="education-tags-new"></div>
+                                    <div class="tag-input-wrapper">
+                                        <input type="text" class="tag-input" placeholder="Ajoutez des écoles/institutions..." data-category="education" data-founder-index="new" autocomplete="off">
+                                        <div class="tag-suggestions" id="education-suggestions-new"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Professional Background -->
+                        <div class="professional-fields" style="display: none;">
+                            <h4 style="color: #64b5f6; margin: 1rem 0 0.5rem 0; font-size: 0.9rem;">Expérience Professionnelle</h4>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Entreprise</label>
+                                    <input type="text" name="professional_company">
+                                </div>
+                                <div class="form-group">
+                                    <label>Poste</label>
+                                    <input type="text" name="professional_position">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Durée</label>
+                                <input type="text" name="professional_duration" placeholder="ex: 2019-2022">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea name="professional_description" rows="2"></textarea>
+                            </div>
+                            
+                            <!-- Professional Tags -->
+                            <div class="form-group">
+                                <label>Entreprises précédentes (tags)</label>
+                                <div class="tag-input-container" data-category="professional">
+                                    <div class="tag-display" id="professional-tags-new"></div>
+                                    <div class="tag-input-wrapper">
+                                        <input type="text" class="tag-input" placeholder="Ajoutez des entreprises..." data-category="professional" data-founder-index="new" autocomplete="off">
+                                        <div class="tag-suggestions" id="professional-suggestions-new"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Legacy Background -->
+                        <div class="form-group">
+                            <label>Background libre (optionnel)</label>
+                            <input type="text" name="founder_background" placeholder="Information supplémentaire...">
+                        </div>
+                        
+                        <button type="button" class="btn btn-danger" onclick="removeFounder(this)">Supprimer</button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addFounder()">+ Ajouter founder</button>
+        </div>
+
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Investisseurs</h3>
+            <div id="investors-section">
+                {% if company and company.investors %}
+                    {% for investor in company.investors %}
+                    <div class="investor-item" style="display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: center;">
+                        <input type="text" name="investor_name" value="{{ investor.name }}" style="flex: 1;">
+                        <button type="button" class="btn btn-danger" onclick="removeInvestor(this)">×</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="investor-item" style="display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: center;">
+                        <input type="text" name="investor_name" placeholder="Nom de l'investisseur" style="flex: 1;">
+                        <button type="button" class="btn btn-danger" onclick="removeInvestor(this)">×</button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addInvestor()">+ Ajouter investisseur</button>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Données financières</h3>
+            
+            <div class="form-group">
+                <label for="founded_year">Année de création</label>
+                <input type="number" id="founded_year" name="founded_year" min="1900" max="2030"
+                       value="{% if company %}{{ company.founded_year or '' }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="last_funding">Dernier funding</label>
+                <input type="text" id="last_funding" name="last_funding" 
+                       placeholder="ex: $30M Series A"
+                       value="{% if company %}{{ company.last_funding or '' }}{% endif %}">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                {% if company %}Mettre à jour{% else %}Créer{% endif %}
+            </button>
+            {% if company %}
+            <button type="button" class="btn btn-danger" onclick="deleteCompany()">
+                Supprimer
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<script>
+    // High profile range display
+    document.getElementById('high_profile').addEventListener('input', function() {
+        document.getElementById('high_profile_display').textContent = this.value + '/5';
+    });
+
+    // Remuneration range display
+    const remunerationLabels = {
+        1: 'Underpaying',
+        2: 'Below Market', 
+        3: 'At Market',
+        4: 'Over Market',
+        5: 'Overpaying'
+    };
+    
+    document.getElementById('remuneration').addEventListener('input', function() {
+        document.getElementById('remuneration_display').textContent = remunerationLabels[this.value];
+    });
+
+    // Toggle background fields based on type selection
+    function toggleBackgroundFields(select) {
+        const founderItem = select.closest('.founder-item');
+        const educationFields = founderItem.querySelector('.education-fields');
+        const professionalFields = founderItem.querySelector('.professional-fields');
+        
+        if (select.value === 'education') {
+            educationFields.style.display = 'block';
+            professionalFields.style.display = 'none';
+        } else if (select.value === 'professional') {
+            educationFields.style.display = 'none';
+            professionalFields.style.display = 'block';
+        } else {
+            educationFields.style.display = 'none';
+            professionalFields.style.display = 'none';
+        }
+    }
+
+    // Add founder with new structure
+    function addFounder() {
+        const section = document.getElementById('founders-section');
+        const founderIndex = section.children.length; // Use current count as index
+        const div = document.createElement('div');
+        div.className = 'founder-item';
+        div.style.cssText = 'background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;';
+        div.innerHTML = `
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Nom</label>
+                    <input type="text" name="founder_name">
+                </div>
+                <div class="form-group">
+                    <label>Titre</label>
+                    <input type="text" name="founder_title">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Type de background</label>
+                <select name="background_type" onchange="toggleBackgroundFields(this)">
+                    <option value="">Sélectionner un type</option>
+                    <option value="education">Éducation</option>
+                    <option value="professional">Professionnel</option>
+                </select>
+            </div>
+            
+            <!-- Education Background -->
+            <div class="education-fields" style="display: none;">
+                <h4 style="color: #64b5f6; margin: 1rem 0 0.5rem 0; font-size: 0.9rem;">Éducation</h4>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Institution</label>
+                        <input type="text" name="education_institution">
+                    </div>
+                    <div class="form-group">
+                        <label>Diplôme</label>
+                        <input type="text" name="education_degree">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Domaine</label>
+                        <input type="text" name="education_field">
+                    </div>
+                    <div class="form-group">
+                        <label>Année</label>
+                        <input type="number" name="education_year">
+                    </div>
+                                            </div>
+                            
+                            <!-- Education Tags -->
+                            <div class="form-group">
+                                <label>Écoles/Institutions (tags)</label>
+                                <div class="tag-input-container" data-category="education">
+                                    <div class="tag-display" id="education-tags-' + founderIndex + '"></div>
+                                    <div class="tag-input-wrapper">
+                                        <input type="text" class="tag-input" placeholder="Ajoutez des écoles/institutions..." data-category="education" data-founder-index="' + founderIndex + '" autocomplete="off">
+                                        <div class="tag-suggestions" id="education-suggestions-' + founderIndex + '"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Professional Background -->
+                        <div class="professional-fields" style="display: none;">
+                            <h4 style="color: #64b5f6; margin: 1rem 0 0.5rem 0; font-size: 0.9rem;">Expérience Professionnelle</h4>
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label>Entreprise</label>
+                                    <input type="text" name="professional_company">
+                                </div>
+                                <div class="form-group">
+                                    <label>Poste</label>
+                                    <input type="text" name="professional_position">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Durée</label>
+                                <input type="text" name="professional_duration" placeholder="ex: 2019-2022">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea name="professional_description" rows="2"></textarea>
+                            </div>
+                            
+                            <!-- Professional Tags -->
+                            <div class="form-group">
+                                <label>Entreprises précédentes (tags)</label>
+                                <div class="tag-input-container" data-category="professional">
+                                    <div class="tag-display" id="professional-tags-' + founderIndex + '"></div>
+                                    <div class="tag-input-wrapper">
+                                        <input type="text" class="tag-input" placeholder="Ajoutez des entreprises..." data-category="professional" data-founder-index="' + founderIndex + '" autocomplete="off">
+                                        <div class="tag-suggestions" id="professional-suggestions-' + founderIndex + '"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+            
+            <!-- Legacy Background -->
+            <div class="form-group">
+                <label>Background libre (optionnel)</label>
+                <input type="text" name="founder_background" placeholder="Information supplémentaire...">
+            </div>
+            
+            <button type="button" class="btn btn-danger" onclick="removeFounder(this)">Supprimer</button>
+        `;
+        section.appendChild(div);
+    }
+                <div class="form-group">
+                    <label>Nom</label>
+                    <input type="text" name="founder_name">
+                </div>
+                <div class="form-group">
+                    <label>Titre</label>
+                    <input type="text" name="founder_title">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Background</label>
+                <input type="text" name="founder_background">
+            </div>
+            <button type="button" class="btn btn-danger" onclick="removeFounder(this)">Supprimer</button>
+        `;
+        section.appendChild(div);
+        
+        // Reinitialize tag system for new founder
+        initializeTagSystemForFounder(founderIndex);
+    }
+    
+    function initializeTagSystemForFounder(founderIndex) {
+        console.log(`Initializing tag system for founder ${founderIndex}`);
+        
+        // Wait a bit for DOM to be ready
+        setTimeout(() => {
+            // Initialize tag inputs for this specific founder
+            const educationInput = document.querySelector(`.tag-input[data-category="education"][data-founder-index="${founderIndex}"]`);
+            const professionalInput = document.querySelector(`.tag-input[data-category="professional"][data-founder-index="${founderIndex}"]`);
+            
+            [educationInput, professionalInput].forEach(input => {
+                if (input) {
+                    console.log(`Initializing input for ${input.dataset.category} founder ${founderIndex}`);
+                    input.addEventListener('input', handleTagInput);
+                    input.addEventListener('keydown', handleTagKeydown);
+                    input.addEventListener('blur', function(e) {
+                        setTimeout(() => hideAllSuggestions(), 200);
+                    });
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return false;
+                        }
+                    });
+                } else {
+                    console.warn(`Input not found for founder ${founderIndex}`);
+                }
+            });
+        }, 100);
+    }
+
+    function removeFounder(btn) {
+        btn.closest('.founder-item').remove();
+    }
+
+    // Add investor
+    function addInvestor() {
+        const section = document.getElementById('investors-section');
+        const div = document.createElement('div');
+        div.className = 'investor-item';
+        div.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: center;';
+        div.innerHTML = `
+            <input type="text" name="investor_name" placeholder="Nom de l'investisseur" style="flex: 1;">
+            <button type="button" class="btn btn-danger" onclick="removeInvestor(this)">×</button>
+        `;
+        section.appendChild(div);
+    }
+
+    function removeInvestor(btn) {
+        btn.closest('.investor-item').remove();
+    }
+
+    // Form submission - moved inside DOMContentLoaded
+    function setupFormSubmission() {
+        document.getElementById('companyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        // Collect founders with new structure
+        const founders = [];
+        const founderItems = document.querySelectorAll('.founder-item');
+        founderItems.forEach((item, index) => {
+            const name = item.querySelector('input[name="founder_name"]').value.trim();
+            if (name) {
+                const founder = {
+                    name: name,
+                    title: item.querySelector('input[name="founder_title"]').value.trim(),
+                    background_type: item.querySelector('select[name="background_type"]').value,
+                    background: item.querySelector('input[name="founder_background"]').value.trim()
+                };
+                
+                // Add education background if selected
+                if (founder.background_type === 'education') {
+                    founder.education_background = {
+                        institution: item.querySelector('input[name="education_institution"]').value.trim(),
+                        degree: item.querySelector('input[name="education_degree"]').value.trim(),
+                        field: item.querySelector('input[name="education_field"]').value.trim(),
+                        year: item.querySelector('input[name="education_year"]').value ? parseInt(item.querySelector('input[name="education_year"]').value) : null
+                    };
+                    
+                    // Collect education tags
+                    const educationTags = [];
+                    const educationTagContainer = document.getElementById(`education-tags-${index}`);
+                    if (educationTagContainer) {
+                        educationTagContainer.querySelectorAll('.tag').forEach(tag => {
+                            educationTags.push(tag.dataset.tag);
+                        });
+                    }
+                    founder.education_tags = educationTags;
+                }
+                
+                // Add professional background if selected
+                if (founder.background_type === 'professional') {
+                    founder.professional_background = {
+                        company: item.querySelector('input[name="professional_company"]').value.trim(),
+                        position: item.querySelector('input[name="professional_position"]').value.trim(),
+                        duration: item.querySelector('input[name="professional_duration"]').value.trim(),
+                        description: item.querySelector('textarea[name="professional_description"]').value.trim()
+                    };
+                    
+                    // Collect professional tags
+                    const professionalTags = [];
+                    const professionalTagContainer = document.getElementById(`professional-tags-${index}`);
+                    if (professionalTagContainer) {
+                        professionalTagContainer.querySelectorAll('.tag').forEach(tag => {
+                            professionalTags.push(tag.dataset.tag);
+                        });
+                    }
+                    founder.professional_tags = professionalTags;
+                }
+                
+                founders.push(founder);
+            }
+        });
+        
+        // Collect investors
+        const investors = [];
+        const investorInputs = document.querySelectorAll('input[name="investor_name"]');
+        investorInputs.forEach(input => {
+            const name = input.value.trim();
+            if (name) {
+                investors.push(name);
+            }
+        });
+        
+        // Collect tags
+        const secteurTags = [];
+        document.querySelectorAll('#secteur-tags .tag').forEach(tag => {
+            secteurTags.push(tag.dataset.tag);
+        });
+        
+        const coreBusinessTags = [];
+        document.querySelectorAll('#core_business-tags .tag').forEach(tag => {
+            coreBusinessTags.push(tag.dataset.tag);
+        });
+        
+        // Prepare data
+        const data = {
+            name: formData.get('name'),
+            website: formData.get('website') || null,
+            description: formData.get('description') || null,
+            sector: formData.get('sector') || null,
+            location: formData.get('location') || null,
+            high_profile: parseInt(formData.get('high_profile')),
+            remuneration: parseInt(formData.get('remuneration')),
+            work_intensity: formData.get('work_intensity'),
+            company_size: formData.get('company_size'),
+            founded_year: formData.get('founded_year') ? parseInt(formData.get('founded_year')) : null,
+            last_funding: formData.get('last_funding') || null,
+            founders: founders,
+            investors: investors,
+            secteur_tags: secteurTags,
+            core_business_tags: coreBusinessTags,
+            relations: []
+        };
+        
+        try {
+            const url = {% if company %}'/api/companies/{{ company.id }}'{% else %}'/api/companies'{% endif %};
+            const method = {% if company %}'PUT'{% else %}'POST'{% endif %};
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                // Redirect to home page to see the new company in the list
+                window.location.href = '/';
+            } else {
+                const error = await response.json();
+                alert('Erreur: ' + (error.detail || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            alert('Erreur réseau: ' + error.message);
+        }
+        });
+    }
+
+    {% if company %}
+    async function deleteCompany() {
+        if (confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ? Cette action est irréversible.')) {
+            try {
+                const response = await fetch('/api/companies/{{ company.id }}', {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    alert('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                alert('Erreur réseau: ' + error.message);
+            }
+        }
+    }
+    {% endif %}
+
+    // Tag system functionality
+    let debounceTimer;
+    
+    // Color palette for new tags
+    const tagColors = [
+        '#e91e63', '#4caf50', '#2196f3', '#00bcd4', '#9c27b0', 
+        '#ff9800', '#795548', '#f44336', '#ffc107', '#3f51b5',
+        '#607d8b', '#8bc34a', '#cddc39', '#ff5722', '#009688',
+        '#673ab7', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'
+    ];
+    
+    function getRandomColor() {
+        return tagColors[Math.floor(Math.random() * tagColors.length)];
+    }
+    
+    // Initialize tag system
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeTagSystem();
+        initializeExistingFounderTags();
+        setupFormSubmission();
+    });
+    
+    function initializeExistingFounderTags() {
+        // Initialize tag system for existing founders
+        document.querySelectorAll('.founder-item').forEach((founderItem, index) => {
+            initializeTagSystemForFounder(index);
+        });
+    }
+    
+    function initializeTagSystem() {
+        const tagInputs = document.querySelectorAll('.tag-input');
+        tagInputs.forEach(input => {
+            input.addEventListener('input', handleTagInput);
+            input.addEventListener('keydown', handleTagKeydown);
+            input.addEventListener('blur', function(e) {
+                // Délai pour permettre aux clics sur les suggestions
+                setTimeout(() => hideAllSuggestions(), 200);
+            });
+            
+            // Empêche la soumission du formulaire quand on appuie sur Entrée
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            });
+        });
+    }
+    
+    function handleTagInput(e) {
+        const input = e.target;
+        const category = input.dataset.category;
+        const founderIndex = input.dataset.founderIndex;
+        const query = input.value.trim();
+        
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            if (query.length >= 1) {
+                if (founderIndex !== undefined) {
+                    searchTagsForFounder(query, category, founderIndex);
+                } else {
+                    searchTags(query, category);
+                }
+            } else {
+                if (founderIndex !== undefined) {
+                    hideSuggestionsForFounder(category, founderIndex);
+                } else {
+                    hideSuggestions(category);
+                }
+            }
+        }, 300);
+    }
+    
+    function handleTagKeydown(e) {
+        const input = e.target;
+        const category = input.dataset.category;
+        const founderIndex = input.dataset.founderIndex;
+        
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Empêche la soumission du formulaire
+            e.stopPropagation(); // Empêche la propagation de l'événement
+            
+            const tagName = input.value.trim();
+            if (tagName) {
+                console.log(`Adding tag: "${tagName}" to category: ${category}, founderIndex: ${founderIndex}`);
+                if (founderIndex !== undefined && founderIndex !== "undefined") {
+                    addTagToFounder(tagName, category, founderIndex, getRandomColor());
+                    clearTagInputForFounder(category, founderIndex);
+                } else {
+                    addTag(tagName, category, getRandomColor());
+                    clearTagInput(category);
+                }
+            }
+            return false; // Empêche complètement la soumission
+        } else if (e.key === 'Escape') {
+            if (founderIndex !== undefined && founderIndex !== "undefined") {
+                hideSuggestionsForFounder(category, founderIndex);
+            } else {
+                hideSuggestions(category);
+            }
+            input.blur(); // Retire le focus
+        }
+    }
+    
+    async function searchTags(query, category) {
+        try {
+            const response = await fetch(`/api/tags/search?q=${encodeURIComponent(query)}&category=${category}&limit=5`);
+            const suggestions = await response.json();
+            
+            showSuggestions(suggestions, category);
+        } catch (error) {
+            console.error('Error searching tags:', error);
+        }
+    }
+    
+    function showSuggestions(suggestions, category) {
+        const suggestionsContainer = document.getElementById(`${category}-suggestions`);
+        const input = document.querySelector(`.tag-input[data-category="${category}"]`);
+        const inputValue = input.value.trim();
+        
+        // Clear previous suggestions
+        suggestionsContainer.innerHTML = '';
+        
+        // If there's input but no suggestions, show option to create new tag
+        if (inputValue && suggestions.length === 0) {
+            suggestionsContainer.innerHTML = `
+                <div class="tag-suggestion" onclick="addTag('${inputValue}', '${category}', getRandomColor()); clearTagInput('${category}');">
+                    <span class="tag-preview new-tag" style="background-color: #64b5f620; color: #64b5f6; border: 1px solid #64b5f640; font-style: italic;">
+                        + Créer "${inputValue}"
+                    </span>
+                    <span class="tag-usage">Nouveau tag</span>
+                </div>
+            `;
+            suggestionsContainer.style.display = 'block';
+            return;
+        }
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        const existingTags = getCurrentTags(category);
+        const filteredSuggestions = suggestions.filter(s => !existingTags.includes(s.name));
+        
+        let html = filteredSuggestions.map(suggestion => `
+            <div class="tag-suggestion" onclick="addTag('${suggestion.name}', '${category}', '${suggestion.color}'); clearTagInput('${category}');">
+                <span class="tag-preview" style="background-color: ${suggestion.color}20; color: ${suggestion.color}; border: 1px solid ${suggestion.color}40;">
+                    ${suggestion.name}
+                </span>
+                <span class="tag-usage">${suggestion.usage_count} utilisations</span>
+            </div>
+        `).join('');
+        
+        // Add option to create new tag if input doesn't match exactly
+        if (inputValue && !filteredSuggestions.some(s => s.name.toLowerCase() === inputValue.toLowerCase())) {
+            html += `
+                <div class="tag-suggestion" onclick="addTag('${inputValue}', '${category}', getRandomColor()); clearTagInput('${category}');">
+                    <span class="tag-preview new-tag" style="background-color: #64b5f620; color: #64b5f6; border: 1px solid #64b5f640; font-style: italic;">
+                        + Créer "${inputValue}"
+                    </span>
+                    <span class="tag-usage">Nouveau tag</span>
+                </div>
+            `;
+        }
+        
+        suggestionsContainer.innerHTML = html;
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    function hideSuggestions(category) {
+        const suggestionsContainer = document.getElementById(`${category}-suggestions`);
+        setTimeout(() => {
+            suggestionsContainer.style.display = 'none';
+        }, 200);
+    }
+    
+    function hideAllSuggestions() {
+        hideSuggestions('secteur');
+        hideSuggestions('core_business');
+        // Hide education and professional suggestions for all founders
+        document.querySelectorAll('[id^="education-suggestions-"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('[id^="professional-suggestions-"]').forEach(el => {
+            el.style.display = 'none';
+        });
+    }
+    
+    function clearTagInput(category) {
+        const input = document.querySelector(`.tag-input[data-category="${category}"]:not([data-founder-index])`);
+        if (input) {
+            input.value = '';
+            hideSuggestions(category);
+        }
+    }
+    
+    function getCurrentTags(category) {
+        const tagContainer = document.getElementById(`${category}-tags`);
+        if (!tagContainer) {
+            console.warn(`Tag container not found: ${category}-tags`);
+            return [];
+        }
+        return Array.from(tagContainer.querySelectorAll('.tag')).map(tag => tag.dataset.tag);
+    }
+    
+    function addTag(tagName, category, color = '#64b5f6') {
+        console.log(`Attempting to add tag: "${tagName}" to category: ${category}`);
+        
+        // Check if tag already exists
+        const existingTags = getCurrentTags(category);
+        if (existingTags.includes(tagName)) {
+            console.log(`Tag "${tagName}" already exists in ${category}`);
+            // Show a brief feedback
+            const input = document.querySelector(`.tag-input[data-category="${category}"]:not([data-founder-index])`);
+            if (input) {
+                const originalPlaceholder = input.placeholder;
+                input.placeholder = `"${tagName}" existe déjà!`;
+                input.style.color = '#f44336';
+                setTimeout(() => {
+                    input.placeholder = originalPlaceholder;
+                    input.style.color = '';
+                }, 2000);
+            }
+            return;
+        }
+        
+        const tagContainer = document.getElementById(`${category}-tags`);
+        if (!tagContainer) {
+            console.error(`Tag container not found: ${category}-tags`);
+            return;
+        }
+        
+        const tagElement = document.createElement('span');
+        tagElement.className = 'tag';
+        tagElement.dataset.tag = tagName;
+        tagElement.style.cssText = `background-color: ${color}20; color: ${color}; border: 1px solid ${color}40; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; animation: tagFadeIn 0.2s ease-out; margin-right: 0.5rem; margin-bottom: 0.5rem;`;
+        tagElement.innerHTML = `
+            ${tagName}
+            <button type="button" class="tag-remove" onclick="removeTag(this)" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0; margin-left: 0.25rem; font-size: 1rem; line-height: 1; opacity: 0.7;">×</button>
+        `;
+        
+        tagContainer.appendChild(tagElement);
+        console.log(`✅ Added tag "${tagName}" to ${category} with color ${color}`);
+        
+        // Show brief success feedback
+        const input = document.querySelector(`.tag-input[data-category="${category}"]:not([data-founder-index])`);
+        if (input) {
+            const originalPlaceholder = input.placeholder;
+            input.placeholder = `✅ "${tagName}" ajouté!`;
+            input.style.color = '#4caf50';
+            setTimeout(() => {
+                input.placeholder = originalPlaceholder;
+                input.style.color = '';
+            }, 1500);
+        }
+    }
+    
+    function removeTag(button) {
+        button.closest('.tag').remove();
+    }
+    
+    // Functions for founder background tags
+    async function searchTagsForFounder(query, category, founderIndex) {
+        try {
+            const response = await fetch(`/api/tags/search?q=${encodeURIComponent(query)}&category=${category}&limit=5`);
+            const suggestions = await response.json();
+            
+            showSuggestionsForFounder(suggestions, category, founderIndex, query);
+        } catch (error) {
+            console.error('Error searching tags for founder:', error);
+        }
+    }
+    
+    function showSuggestionsForFounder(suggestions, category, founderIndex, inputValue) {
+        const suggestionsContainer = document.getElementById(`${category}-suggestions-${founderIndex}`);
+        
+        if (!suggestionsContainer) {
+            console.warn(`Suggestions container not found: ${category}-suggestions-${founderIndex}`);
+            return;
+        }
+        
+        // Clear previous suggestions
+        suggestionsContainer.innerHTML = '';
+        
+        // If there's input but no suggestions, show option to create new tag
+        if (inputValue && suggestions.length === 0) {
+            suggestionsContainer.innerHTML = `
+                <div class="tag-suggestion" onclick="addTagToFounder('${inputValue}', '${category}', ${founderIndex}, getRandomColor()); clearTagInputForFounder('${category}', ${founderIndex});">
+                    <span class="tag-preview new-tag" style="background-color: #64b5f620; color: #64b5f6; border: 1px solid #64b5f640; font-style: italic;">
+                        + Créer "${inputValue}"
+                    </span>
+                    <span class="tag-usage">Nouveau tag</span>
+                </div>
+            `;
+            suggestionsContainer.style.display = 'block';
+            return;
+        }
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        const existingTags = getCurrentTagsForFounder(category, founderIndex);
+        const filteredSuggestions = suggestions.filter(s => !existingTags.includes(s.name));
+        
+        let html = filteredSuggestions.map(suggestion => `
+            <div class="tag-suggestion" onclick="addTagToFounder('${suggestion.name}', '${category}', ${founderIndex}, '${suggestion.color}'); clearTagInputForFounder('${category}', ${founderIndex});">
+                <span class="tag-preview" style="background-color: ${suggestion.color}20; color: ${suggestion.color}; border: 1px solid ${suggestion.color}40;">
+                    ${suggestion.name}
+                </span>
+                <span class="tag-usage">${suggestion.usage_count} utilisations</span>
+            </div>
+        `).join('');
+        
+        // Add option to create new tag if input doesn't match exactly
+        if (inputValue && !filteredSuggestions.some(s => s.name.toLowerCase() === inputValue.toLowerCase())) {
+            html += `
+                <div class="tag-suggestion" onclick="addTagToFounder('${inputValue}', '${category}', ${founderIndex}, getRandomColor()); clearTagInputForFounder('${category}', ${founderIndex});">
+                    <span class="tag-preview new-tag" style="background-color: #64b5f620; color: #64b5f6; border: 1px solid #64b5f640; font-style: italic;">
+                        + Créer "${inputValue}"
+                    </span>
+                    <span class="tag-usage">Nouveau tag</span>
+                </div>
+            `;
+        }
+        
+        suggestionsContainer.innerHTML = html;
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    function hideSuggestionsForFounder(category, founderIndex) {
+        const suggestionsContainer = document.getElementById(`${category}-suggestions-${founderIndex}`);
+        if (suggestionsContainer) {
+            setTimeout(() => {
+                suggestionsContainer.style.display = 'none';
+            }, 200);
+        }
+    }
+    
+    function clearTagInputForFounder(category, founderIndex) {
+        const input = document.querySelector(`.tag-input[data-category="${category}"][data-founder-index="${founderIndex}"]`);
+        if (input) {
+            input.value = '';
+            hideSuggestionsForFounder(category, founderIndex);
+        }
+    }
+    
+    function getCurrentTagsForFounder(category, founderIndex) {
+        const tagContainer = document.getElementById(`${category}-tags-${founderIndex}`);
+        if (!tagContainer) return [];
+        return Array.from(tagContainer.querySelectorAll('.tag')).map(tag => tag.dataset.tag);
+    }
+    
+    function addTagToFounder(tagName, category, founderIndex, color = '#64b5f6') {
+        // Check if tag already exists
+        const existingTags = getCurrentTagsForFounder(category, founderIndex);
+        if (existingTags.includes(tagName)) {
+            console.log(`Tag "${tagName}" already exists in ${category} for founder ${founderIndex}`);
+            return;
+        }
+        
+        const tagContainer = document.getElementById(`${category}-tags-${founderIndex}`);
+        if (!tagContainer) {
+            console.warn(`Tag container not found: ${category}-tags-${founderIndex}`);
+            return;
+        }
+        
+        const tagElement = document.createElement('span');
+        tagElement.className = 'tag';
+        tagElement.dataset.tag = tagName;
+        tagElement.style.cssText = `background-color: ${color}20; color: ${color}; border: 1px solid ${color}40; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.5rem; animation: tagFadeIn 0.2s ease-out; margin-right: 0.5rem; margin-bottom: 0.5rem;`;
+        tagElement.innerHTML = `
+            ${tagName}
+            <button type="button" class="tag-remove" onclick="removeTag(this)" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0; margin-left: 0.25rem; font-size: 1rem; line-height: 1; opacity: 0.7;">×</button>
+        `;
+        
+        tagContainer.appendChild(tagElement);
+        console.log(`✅ Added tag "${tagName}" to ${category} for founder ${founderIndex} with color ${color}`);
+    }
+</script>
+
+<style>
+.tag-input-container {
+    border: 1px solid rgba(100, 181, 246, 0.3);
+    border-radius: 8px;
+    background: rgba(30, 30, 46, 0.4);
+    padding: 0.5rem;
+    min-height: 60px;
+}
+
+.tag-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    min-height: 32px;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    animation: tagFadeIn 0.2s ease-out;
+}
+
+@keyframes tagFadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.tag-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 0.25rem;
+    font-size: 1rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.tag-remove:hover {
+    opacity: 1;
+}
+
+.tag-input-wrapper {
+    position: relative;
+}
+
+.tag-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 0.9rem;
+    padding: 0.25rem 0;
+}
+
+.tag-input::placeholder {
+    color: rgba(158, 158, 158, 0.7);
+}
+
+.tag-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 46, 0.98);
+    border: 2px solid rgba(100, 181, 246, 0.5);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    margin-top: 2px;
+}
+
+.tag-suggestion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid rgba(100, 181, 246, 0.1);
+}
+
+.tag-suggestion:hover {
+    background: rgba(100, 181, 246, 0.2);
+    transform: translateY(-1px);
+}
+
+.new-tag {
+    font-weight: 600 !important;
+}
+
+.tag-suggestion:last-child {
+    border-bottom: none;
+}
+
+.tag-preview {
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.tag-usage {
+    font-size: 0.75rem;
+    color: rgba(158, 158, 158, 0.7);
+}
+</style>
+{% endblock %}

@@ -95,37 +95,40 @@
             <h3 style="color: #64b5f6; margin-bottom: 1rem;">Fondateurs</h3>
             <div style="display: grid; gap: 1rem;">
                 {% for founder in company.founders %}
-                <div style="background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                        <strong style="color: #64b5f6; font-size: 1.1rem;">{{ founder.name }}</strong>
-                        {% if founder.title %}
-                        <span style="color: #9e9e9e; font-size: 0.9rem;">{{ founder.title }}</span>
+                <div class="founder-card" data-founder-id="{{ loop.index0 }}" style="background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px;">
+                    <!-- Header with name, title and toggle -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <strong style="color: #64b5f6; font-size: 1.1rem;">{{ founder.name }}</strong>
+                            {% if founder.title %}
+                            <div style="color: #9e9e9e; font-size: 0.9rem; margin-top: 0.2rem;">{{ founder.title }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Background Toggle Buttons -->
+                        {% set has_education = founder.education_institution or founder.get_education_tags() %}
+                        {% set has_professional = founder.professional_company or founder.get_professional_tags() %}
+                        
+                        {% if has_education and has_professional %}
+                        <div class="background-toggle" style="display: flex; gap: 0.5rem;">
+                            <button class="toggle-btn active" data-type="professional" onclick="toggleFounderBackground({{ loop.index0 }}, 'professional')" style="background: rgba(255, 152, 0, 0.3); color: #ff9800; border: 1px solid #ff9800; padding: 0.3rem 0.8rem; border-radius: 16px; font-size: 0.8rem; cursor: pointer;">
+                                💼 Pro
+                            </button>
+                            <button class="toggle-btn" data-type="education" onclick="toggleFounderBackground({{ loop.index0 }}, 'education')" style="background: rgba(76, 175, 80, 0.1); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.3); padding: 0.3rem 0.8rem; border-radius: 16px; font-size: 0.8rem; cursor: pointer;">
+                                🎓 Edu
+                            </button>
+                        </div>
                         {% endif %}
                     </div>
                     
-                    {% if founder.background_type == 'education' and founder.education_institution %}
-                    <div style="margin-bottom: 0.5rem;">
-                        <strong style="color: #4caf50; font-size: 0.9rem;">Éducation:</strong>
-                        <div style="color: #e0e0e0; margin-left: 1rem;">
-                            <div>🎓 {{ founder.education_institution }}</div>
-                            {% if founder.education_degree %}
-                            <div>📜 {{ founder.education_degree }}</div>
-                            {% endif %}
-                            {% if founder.education_field %}
-                            <div>🔬 {{ founder.education_field }}</div>
-                            {% endif %}
-                            {% if founder.education_year %}
-                            <div>📅 {{ founder.education_year }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if founder.background_type == 'professional' and founder.professional_company %}
-                    <div style="margin-bottom: 0.5rem;">
-                        <strong style="color: #ff9800; font-size: 0.9rem;">Expérience Professionnelle:</strong>
-                        <div style="color: #e0e0e0; margin-left: 1rem;">
+                    <!-- Professional Background (Default) -->
+                    {% if has_professional %}
+                    <div class="professional-background" data-founder="{{ loop.index0 }}" style="display: block;">
+                        <strong style="color: #ff9800; font-size: 0.9rem;">💼 Expérience Professionnelle</strong>
+                        <div style="color: #e0e0e0; margin-left: 1rem; margin-top: 0.5rem;">
+                            {% if founder.professional_company %}
                             <div>🏢 {{ founder.professional_company }}</div>
+                            {% endif %}
                             {% if founder.professional_position %}
                             <div>💼 {{ founder.professional_position }}</div>
                             {% endif %}
@@ -135,11 +138,61 @@
                             {% if founder.professional_description %}
                             <div style="margin-top: 0.5rem; font-style: italic;">{{ founder.professional_description }}</div>
                             {% endif %}
+                            
+                            <!-- Professional Tags -->
+                            {% if founder.get_professional_tags() %}
+                            <div style="margin-top: 0.8rem;">
+                                <strong style="color: #ff9800; font-size: 0.8rem;">Entreprises:</strong>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem;">
+                                    {% for tag in founder.get_professional_tags() %}
+                                    <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">
+                                        {{ tag.name }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endif %}
                     
-                    {% if founder.background %}
+                    <!-- Education Background (Hidden by default) -->
+                    {% if has_education %}
+                    <div class="education-background" data-founder="{{ loop.index0 }}" style="display: none;">
+                        <strong style="color: #4caf50; font-size: 0.9rem;">🎓 Éducation</strong>
+                        <div style="color: #e0e0e0; margin-left: 1rem; margin-top: 0.5rem;">
+                            {% if founder.education_institution %}
+                            <div>🎓 {{ founder.education_institution }}</div>
+                            {% endif %}
+                            {% if founder.education_degree %}
+                            <div>📜 {{ founder.education_degree }}</div>
+                            {% endif %}
+                            {% if founder.education_field %}
+                            <div>🔬 {{ founder.education_field }}</div>
+                            {% endif %}
+                            {% if founder.education_year %}
+                            <div>📅 {{ founder.education_year }}</div>
+                            {% endif %}
+                            
+                            <!-- Education Tags -->
+                            {% if founder.get_education_tags() %}
+                            <div style="margin-top: 0.8rem;">
+                                <strong style="color: #4caf50; font-size: 0.8rem;">Écoles:</strong>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem;">
+                                    {% for tag in founder.get_education_tags() %}
+                                    <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">
+                                        {{ tag.name }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Fallback for founders with only one type or legacy background -->
+                    {% if not has_education and not has_professional and founder.background %}
                     <div style="color: #9e9e9e; font-size: 0.9rem; font-style: italic;">
                         {{ founder.background }}
                     </div>
@@ -227,4 +280,66 @@
         </div>
     </div>
 </div>
+
+<script>
+// Toggle between professional and education backgrounds
+function toggleFounderBackground(founderId, type) {
+    const founderCard = document.querySelector(`[data-founder-id="${founderId}"]`);
+    const professionalBg = founderCard.querySelector(`.professional-background[data-founder="${founderId}"]`);
+    const educationBg = founderCard.querySelector(`.education-background[data-founder="${founderId}"]`);
+    const toggleBtns = founderCard.querySelectorAll('.toggle-btn');
+    
+    console.log(`Toggling founder ${founderId} to ${type}`);
+    
+    // Hide both backgrounds first
+    if (professionalBg) professionalBg.style.display = 'none';
+    if (educationBg) educationBg.style.display = 'none';
+    
+    // Remove active class from all buttons
+    toggleBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.type === 'professional') {
+            btn.style.background = 'rgba(255, 152, 0, 0.1)';
+            btn.style.border = '1px solid rgba(255, 152, 0, 0.3)';
+        } else if (btn.dataset.type === 'education') {
+            btn.style.background = 'rgba(76, 175, 80, 0.1)';
+            btn.style.border = '1px solid rgba(76, 175, 80, 0.3)';
+        }
+    });
+    
+    // Show the selected background and activate its button
+    if (type === 'professional' && professionalBg) {
+        professionalBg.style.display = 'block';
+        const profBtn = founderCard.querySelector('.toggle-btn[data-type="professional"]');
+        profBtn.classList.add('active');
+        profBtn.style.background = 'rgba(255, 152, 0, 0.3)';
+        profBtn.style.border = '1px solid #ff9800';
+    } else if (type === 'education' && educationBg) {
+        educationBg.style.display = 'block';
+        const eduBtn = founderCard.querySelector('.toggle-btn[data-type="education"]');
+        eduBtn.classList.add('active');
+        eduBtn.style.background = 'rgba(76, 175, 80, 0.3)';
+        eduBtn.style.border = '1px solid #4caf50';
+    }
+}
+
+console.log('🎯 Background toggle system loaded');
+</script>
+
+<style>
+.toggle-btn {
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-btn.active {
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+</style>
+
 {% endblock %}

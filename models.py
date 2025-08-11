@@ -8,6 +8,8 @@ from enum import Enum
 class TagCategoryEnum(str, Enum):
     SECTEUR = "secteur"
     CORE_BUSINESS = "core_business"
+    EDUCATION = "education"
+    PROFESSIONAL = "professional"
 
 # Keep SectorEnum for backward compatibility and migration
 class SectorEnum(str, Enum):
@@ -67,11 +69,16 @@ class FounderBackground(BaseModel):
     professional: Optional[ProfessionalBackground] = None
 
 class FounderBase(BaseModel):
+    person_id: Optional[int] = None
     name: str
     title: Optional[str] = None
     background_type: Optional[BackgroundTypeEnum] = None
     education_background: Optional[EducationBackground] = None
     professional_background: Optional[ProfessionalBackground] = None
+    
+    # Tag system for backgrounds
+    education_tags: List[str] = []  # List of education institution tags
+    professional_tags: List[str] = []  # List of professional company tags
     
     # Legacy field for backward compatibility
     background: Optional[str] = None
@@ -82,6 +89,15 @@ class FounderCreate(FounderBase):
 class Founder(FounderBase):
     id: int
     company_id: int
+    
+    class Config:
+        from_attributes = True
+
+class PersonBase(BaseModel):
+    name: str
+
+class Person(PersonBase):
+    id: int
     
     class Config:
         from_attributes = True
@@ -136,6 +152,7 @@ class CompanyBase(BaseModel):
     sector: Optional[SectorEnum] = None
     location: Optional[str] = None
     high_profile: int = Field(default=3, ge=1, le=5)
+    remuneration: int = Field(default=3, ge=1, le=5)
     work_intensity: WorkIntensityEnum = Field(default=WorkIntensityEnum.BALANCED)
     company_size: CompanySizeEnum = Field(default=CompanySizeEnum.STARTUP)
     founded_year: Optional[int] = None
@@ -156,6 +173,7 @@ class CompanyUpdate(BaseModel):
     sector: Optional[SectorEnum] = None
     location: Optional[str] = None
     high_profile: Optional[int] = Field(None, ge=1, le=5)
+    remuneration: Optional[int] = Field(None, ge=1, le=5)
     work_intensity: Optional[WorkIntensityEnum] = None
     company_size: Optional[CompanySizeEnum] = None
     founded_year: Optional[int] = None

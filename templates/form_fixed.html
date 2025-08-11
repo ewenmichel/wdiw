@@ -50,8 +50,7 @@
                             {% endfor %}
                         {% endif %}
                     </div>
-                    <input type="text" class="tag-input" placeholder="Tapez un secteur et appuyez sur Entrée..." data-category="secteur" list="tag-secteur">
-                    <div class="autocomplete-list" style="display:none;"></div>
+                    <input type="text" class="tag-input" placeholder="Tapez un secteur et appuyez sur Entrée..." data-category="secteur">
                 </div>
             </div>
             
@@ -69,8 +68,7 @@
                             {% endfor %}
                         {% endif %}
                     </div>
-                    <input type="text" class="tag-input" placeholder="Tapez un core business et appuyez sur Entrée..." data-category="core_business" list="tag-core_business">
-                    <div class="autocomplete-list" style="display:none;"></div>
+                    <input type="text" class="tag-input" placeholder="Tapez un core business et appuyez sur Entrée..." data-category="core_business">
                 </div>
             </div>
 
@@ -137,11 +135,7 @@
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>Nom</label>
-                                <div style="position: relative;">
-                                    <input type="text" name="founder_name" value="{{ founder.name }}" oninput="onFounderInput(this)" autocomplete="off" list="person-suggestions">
-                                    <input type="hidden" name="founder_person_id" value="{{ founder.person_id or '' }}">
-                                    <div class="autocomplete-list" style="display:none;"></div>
-                                </div>
+                                <input type="text" name="founder_name" value="{{ founder.name }}">
                             </div>
                             <div class="form-group">
                                 <label>Titre</label>
@@ -150,21 +144,16 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>Background</label>
-                            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" class="background-checkbox" data-type="education" {% if founder.background_type == 'education' or (founder.education_institution or founder.get_education_tags) %}checked{% endif %} onchange="toggleBackgroundFields(this)">
-                                    Éducation
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" class="background-checkbox" data-type="professional" {% if founder.background_type == 'professional' or (founder.professional_company or founder.get_professional_tags) %}checked{% endif %} onchange="toggleBackgroundFields(this)">
-                                    Professionnel
-                                </label>
-                            </div>
+                            <label>Type de background</label>
+                            <select name="background_type" onchange="toggleBackgroundFields(this)">
+                                <option value="">Sélectionner un type</option>
+                                <option value="education" {% if founder.background_type == 'education' %}selected{% endif %}>Éducation</option>
+                                <option value="professional" {% if founder.background_type == 'professional' %}selected{% endif %}>Professionnel</option>
+                            </select>
                         </div>
                         
                         <!-- Education Background -->
-                        <div class="education-fields" style="display: {% if founder.background_type == 'education' or (founder.education_institution or founder.get_education_tags) %}block{% else %}none{% endif %};">
+                        <div class="education-fields" style="display: {% if founder.background_type == 'education' %}block{% else %}none{% endif %};">
                             <h4 style="color: #64b5f6;">Éducation</h4>
                             <div class="grid-2">
                                 <div class="form-group">
@@ -191,14 +180,13 @@
                                             {% endfor %}
                                         {% endif %}
                                     </div>
-                                    <input type="text" class="tag-input" placeholder="Tapez une école et appuyez sur Entrée..." data-category="education" data-founder-id="{{ loop.index0 }}" list="tag-education">
-                                    <div class="autocomplete-list" style="display:none;"></div>
+                                    <input type="text" class="tag-input" placeholder="Tapez une école et appuyez sur Entrée..." data-category="education" data-founder-id="{{ loop.index0 }}">
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Professional Background -->
-                        <div class="professional-fields" style="display: {% if founder.background_type == 'professional' or (founder.professional_company or founder.get_professional_tags) %}block{% else %}none{% endif %};">
+                        <div class="professional-fields" style="display: {% if founder.background_type == 'professional' %}block{% else %}none{% endif %};">
                             <h4 style="color: #64b5f6;">Expérience Professionnelle</h4>
                             <div class="grid-2">
                                 <div class="form-group">
@@ -225,8 +213,7 @@
                                             {% endfor %}
                                         {% endif %}
                                     </div>
-                                    <input type="text" class="tag-input" placeholder="Tapez une entreprise et appuyez sur Entrée..." data-category="professional" data-founder-id="{{ loop.index0 }}" list="tag-professional">
-                                    <div class="autocomplete-list" style="display:none;"></div>
+                                    <input type="text" class="tag-input" placeholder="Tapez une entreprise et appuyez sur Entrée..." data-category="professional" data-founder-id="{{ loop.index0 }}">
                                 </div>
                             </div>
                         </div>
@@ -240,11 +227,7 @@
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>Nom</label>
-                                <div style="position: relative;">
-                                    <input type="text" name="founder_name" oninput="onFounderInput(this)" autocomplete="off" list="person-suggestions">
-                                    <input type="hidden" name="founder_person_id" value="">
-                                    <div class="autocomplete-list" style="display:none;"></div>
-                                </div>
+                                <input type="text" name="founder_name">
                             </div>
                             <div class="form-group">
                                 <label>Titre</label>
@@ -253,17 +236,12 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>Background</label>
-                            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" class="background-checkbox" data-type="education" onchange="toggleBackgroundFields(this)">
-                                    Éducation
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" class="background-checkbox" data-type="professional" onchange="toggleBackgroundFields(this)">
-                                    Professionnel
-                                </label>
-                            </div>
+                            <label>Type de background</label>
+                            <select name="background_type" onchange="toggleBackgroundFields(this)">
+                                <option value="">Sélectionner un type</option>
+                                <option value="education">Éducation</option>
+                                <option value="professional">Professionnel</option>
+                            </select>
                         </div>
                         
                         <!-- Education Background -->
@@ -285,8 +263,7 @@
                                 <label>Écoles/Institutions</label>
                                 <div class="tag-container" data-category="education" data-founder-id="0">
                                     <div class="tag-display" id="education-tags-0"></div>
-                                    <input type="text" class="tag-input" placeholder="Tapez une école et appuyez sur Entrée..." data-category="education" data-founder-id="0" list="tag-education">
-                                    <div class="autocomplete-list" style="display:none;"></div>
+                                    <input type="text" class="tag-input" placeholder="Tapez une école et appuyez sur Entrée..." data-category="education" data-founder-id="0">
                                 </div>
                             </div>
                         </div>
@@ -310,8 +287,7 @@
                                 <label>Entreprises précédentes</label>
                                 <div class="tag-container" data-category="professional" data-founder-id="0">
                                     <div class="tag-display" id="professional-tags-0"></div>
-                                    <input type="text" class="tag-input" placeholder="Tapez une entreprise et appuyez sur Entrée..." data-category="professional" data-founder-id="0" list="tag-professional">
-                                    <div class="autocomplete-list" style="display:none;"></div>
+                                    <input type="text" class="tag-input" placeholder="Tapez une entreprise et appuyez sur Entrée..." data-category="professional" data-founder-id="0">
                                 </div>
                             </div>
                         </div>
@@ -411,66 +387,10 @@ function initializeTagSystem() {
         document.getElementById('high_profile_display').textContent = this.value + '/5';
     });
 
-            const remunerationLabels = {1: 'Underpaying', 2: 'Below Market', 3: 'At Market', 4: 'Over Market', 5: 'Overpaying'};
-            setupFounderAutocomplete();
-            setupTagAutocomplete();
-            preloadPersonAndTagSuggestions();
+    const remunerationLabels = {1: 'Underpaying', 2: 'Below Market', 3: 'At Market', 4: 'Over Market', 5: 'Overpaying'};
     document.getElementById('remuneration').addEventListener('input', function() {
         document.getElementById('remuneration_display').textContent = remunerationLabels[this.value];
     });
-}
-// Preload initial suggestions into local datastores to make the UI immediately show options
-let preloadCache = { persons: [], tags: { secteur: [], core_business: [], education: [], professional: [] } };
-async function preloadPersonAndTagSuggestions() {
-    try {
-        const [personsResp, secteurResp, coreResp, eduResp, proResp] = await Promise.all([
-            fetch('/api/persons'),
-            fetch('/api/tags?category=secteur&limit=100'),
-            fetch('/api/tags?category=core_business&limit=100'),
-            fetch('/api/tags?category=education&limit=100'),
-            fetch('/api/tags?category=professional&limit=100')
-        ]);
-        preloadCache.persons = await personsResp.json();
-        preloadCache.tags.secteur = await secteurResp.json();
-        preloadCache.tags.core_business = await coreResp.json();
-        preloadCache.tags.education = await eduResp.json();
-        preloadCache.tags.professional = await proResp.json();
-
-        // Populate datalists for native autocomplete hints
-        const personList = document.getElementById('person-suggestions');
-        personList.innerHTML = '';
-        preloadCache.persons.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.name;
-            personList.appendChild(opt);
-        });
-
-        const map = [
-            ['tag-secteur', preloadCache.tags.secteur],
-            ['tag-core_business', preloadCache.tags.core_business],
-            ['tag-education', preloadCache.tags.education],
-            ['tag-professional', preloadCache.tags.professional]
-        ];
-        map.forEach(([id, arr]) => {
-            const dl = document.getElementById(id);
-            if (!dl) return;
-            dl.innerHTML = '';
-            arr.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.name;
-                dl.appendChild(opt);
-            });
-        });
-        // Show simple inline hint for founders if we have persons
-        document.querySelectorAll('input[name="founder_name"]').forEach(inp => {
-            if (preloadCache.persons.length > 0 && !inp.placeholder.includes('ex:')) {
-                const example = preloadCache.persons[0]?.name || '';
-                if (example) inp.placeholder = `Tapez un nom (ex: ${example})`;
-            }
-        });
-    } catch (e) {
-        // ignore if preload fails
-    }
 }
 
 function addTag(input, tagName) {
@@ -516,148 +436,21 @@ function removeTag(button) {
     button.closest('.tag').remove();
 }
 
-// --- Autocomplete for founders (Person) ---
-let founderSearchDebounce;
-function setupFounderAutocomplete() {
-    document.querySelectorAll('input[name="founder_name"]').forEach(input => {
-        input.addEventListener('focus', () => onFounderInput(input));
-    });
-    document.addEventListener('click', (e) => {
-        document.querySelectorAll('.autocomplete-list').forEach(list => {
-            if (!list.contains(e.target) && list.previousElementSibling !== e.target) {
-                list.style.display = 'none';
-            }
-        });
-    });
-}
-
-function onFounderInput(inputEl) {
-    // Clear selected person when typing
-    const hidden = inputEl.parentElement.querySelector('input[name="founder_person_id"]');
-    if (hidden) hidden.value = '';
-    const q = inputEl.value.trim();
-    const list = inputEl.parentElement.querySelector('.autocomplete-list');
-    if (!q) {
-        // Show preload suggestions or fetch top persons
-        const useItems = (preloadCache.persons || []).slice(0, 8).map(p => ({ label: p.name, value: p.id }));
-        if (useItems.length > 0) {
-            renderAutocompleteList(list, useItems, (item) => {
-                inputEl.value = item.label;
-                if (hidden) hidden.value = item.value;
-                list.style.display = 'none';
-            });
-            return;
-        }
-        // Fallback: fetch top persons
-        fetch('/api/persons')
-            .then(r => r.json())
-            .then(arr => {
-                renderAutocompleteList(list, (arr || []).slice(0, 8).map(p => ({ label: p.name, value: p.id })), (item) => {
-                    inputEl.value = item.label;
-                    if (hidden) hidden.value = item.value;
-                    list.style.display = 'none';
-                });
-            })
-            .catch(() => { if (list) list.style.display = 'none'; });
-        return;
-    }
-    clearTimeout(founderSearchDebounce);
-    founderSearchDebounce = setTimeout(async () => {
-        try {
-            const resp = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}&limit=8`);
-            const results = await resp.json();
-            renderAutocompleteList(list, results.map(r => ({ label: r.name, value: r.id })), (item) => {
-                inputEl.value = item.label;
-                if (hidden) hidden.value = item.value;
-                list.style.display = 'none';
-            });
-        } catch (e) {
-            // ignore
-        }
-    }, 150);
-}
-
-function renderAutocompleteList(listEl, items, onClick) {
-    if (!listEl) return;
-    listEl.innerHTML = '';
-    if (!items || items.length === 0) {
-        listEl.style.display = 'none';
-        return;
-    }
-    items.forEach(it => {
-        const div = document.createElement('div');
-        div.className = 'autocomplete-item';
-        div.textContent = it.label;
-        div.addEventListener('click', () => onClick(it));
-        listEl.appendChild(div);
-    });
-    listEl.style.display = 'block';
-}
-
-// --- Autocomplete for tags ---
-let tagSearchDebounce;
-function setupTagAutocomplete() {
-    document.querySelectorAll('.tag-input').forEach(input => {
-        input.addEventListener('input', () => onTagInput(input));
-        input.addEventListener('focus', () => onTagInput(input));
-    });
-}
-
-function onTagInput(input) {
-    const q = input.value.trim();
-    const list = input.parentElement.querySelector('.autocomplete-list');
-    const category = input.dataset.category;
-    if (!q) {
-        // Show preload tags by category
-        const preload = (preloadCache.tags && preloadCache.tags[category]) ? preloadCache.tags[category] : [];
-        if (preload.length > 0) {
-            renderAutocompleteList(list, preload.slice(0, 8).map(t => ({ label: t.name, value: t.name })), (item) => {
-                addTag(input, item.label);
-                input.value = '';
-                list.style.display = 'none';
-            });
-            return;
-        }
-        // Fallback: fetch top tags
-        fetch(`/api/tags?category=${encodeURIComponent(category)}&limit=20`)
-            .then(r => r.json())
-            .then(arr => {
-                renderAutocompleteList(list, (arr || []).slice(0, 8).map(t => ({ label: t.name, value: t.name })), (item) => {
-                    addTag(input, item.label);
-                    input.value = '';
-                    list.style.display = 'none';
-                });
-            })
-            .catch(() => { if (list) list.style.display = 'none'; });
-        return;
-    }
-    clearTimeout(tagSearchDebounce);
-    tagSearchDebounce = setTimeout(async () => {
-        try {
-            const resp = await fetch(`/api/tags/search?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&limit=8`);
-            const results = await resp.json();
-            renderAutocompleteList(list, results.map(r => ({ label: r.name, value: r.name })), (item) => {
-                addTag(input, item.label);
-                input.value = '';
-                list.style.display = 'none';
-            });
-        } catch (e) {
-            // ignore
-        }
-    }, 150);
-}
-
 // Toggle background fields
-function toggleBackgroundFields(checkbox) {
-    const founderItem = checkbox.closest('.founder-item');
+function toggleBackgroundFields(select) {
+    const founderItem = select.closest('.founder-item');
     const educationFields = founderItem.querySelector('.education-fields');
     const professionalFields = founderItem.querySelector('.professional-fields');
-    const type = checkbox.dataset.type;
     
-    if (type === 'education') {
-        educationFields.style.display = checkbox.checked ? 'block' : 'none';
-    } else if (type === 'professional') {
-        professionalFields.style.display = checkbox.checked ? 'block' : 'none';
+    if (select.value === 'education') {
+        educationFields.style.display = 'block';
+        professionalFields.style.display = 'none';
+    } else if (select.value === 'professional') {
+        educationFields.style.display = 'none';
+        professionalFields.style.display = 'block';
+    } else {
+        educationFields.style.display = 'none';
+        professionalFields.style.display = 'none';
     }
 }
 
@@ -674,11 +467,7 @@ function addFounder() {
         <div class="grid-2">
             <div class="form-group">
                 <label>Nom</label>
-                <div style="position: relative;">
-                    <input type="text" name="founder_name" oninput="onFounderInput(this)" autocomplete="off">
-                    <input type="hidden" name="founder_person_id" value="">
-                    <div class="autocomplete-list" style="display:none;"></div>
-                </div>
+                <input type="text" name="founder_name">
             </div>
             <div class="form-group">
                 <label>Titre</label>
@@ -687,17 +476,12 @@ function addFounder() {
         </div>
         
         <div class="form-group">
-            <label>Background</label>
-            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" class="background-checkbox" data-type="education" onchange="toggleBackgroundFields(this)">
-                    Éducation
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" class="background-checkbox" data-type="professional" onchange="toggleBackgroundFields(this)">
-                    Professionnel
-                </label>
-            </div>
+            <label>Type de background</label>
+            <select name="background_type" onchange="toggleBackgroundFields(this)">
+                <option value="">Sélectionner un type</option>
+                <option value="education">Éducation</option>
+                <option value="professional">Professionnel</option>
+            </select>
         </div>
         
         <div class="education-fields" style="display: none;">
@@ -718,7 +502,6 @@ function addFounder() {
                 <div class="tag-container" data-category="education" data-founder-id="${founderId}">
                     <div class="tag-display" id="education-tags-${founderId}"></div>
                     <input type="text" class="tag-input" placeholder="Tapez une école et appuyez sur Entrée..." data-category="education" data-founder-id="${founderId}">
-                    <div class="autocomplete-list" style="display:none;"></div>
                 </div>
             </div>
         </div>
@@ -741,7 +524,6 @@ function addFounder() {
                 <div class="tag-container" data-category="professional" data-founder-id="${founderId}">
                     <div class="tag-display" id="professional-tags-${founderId}"></div>
                     <input type="text" class="tag-input" placeholder="Tapez une entreprise et appuyez sur Entrée..." data-category="professional" data-founder-id="${founderId}">
-                    <div class="autocomplete-list" style="display:none;"></div>
                 </div>
             </div>
         </div>
@@ -766,12 +548,7 @@ function addFounder() {
                 return false;
             }
         });
-        input.addEventListener('input', () => onTagInput(input));
-        input.addEventListener('focus', () => onTagInput(input));
     });
-    // Brancher l'autocomplétion du nom de founder
-    const founderNameInput = div.querySelector('input[name="founder_name"]');
-    if (founderNameInput) founderNameInput.addEventListener('focus', () => onFounderInput(founderNameInput));
 }
 
 function removeFounder(btn) {
@@ -809,14 +586,10 @@ function setupFormSubmission() {
                 const founder = {
                     name: name,
                     title: item.querySelector('input[name="founder_title"]').value.trim(),
+                    background_type: item.querySelector('select[name="background_type"]').value,
                 };
-                const personIdVal = item.querySelector('input[name="founder_person_id"]').value.trim();
-                if (personIdVal) founder.person_id = parseInt(personIdVal, 10);
                 
-                // Check if education background is enabled
-                const educationCheckbox = item.querySelector('.background-checkbox[data-type="education"]');
-                if (educationCheckbox && educationCheckbox.checked) {
-                    founder.background_type = 'education'; // Keep for compatibility
+                if (founder.background_type === 'education') {
                     founder.education_background = {
                         institution: item.querySelector('input[name="education_institution"]').value.trim(),
                         degree: item.querySelector('input[name="education_degree"]').value.trim()
@@ -830,10 +603,7 @@ function setupFormSubmission() {
                     founder.education_tags = educationTags;
                 }
                 
-                // Check if professional background is enabled
-                const professionalCheckbox = item.querySelector('.background-checkbox[data-type="professional"]');
-                if (professionalCheckbox && professionalCheckbox.checked) {
-                    if (!founder.background_type) founder.background_type = 'professional'; // Keep for compatibility
+                if (founder.background_type === 'professional') {
                     founder.professional_background = {
                         company: item.querySelector('input[name="professional_company"]').value.trim(),
                         position: item.querySelector('input[name="professional_position"]').value.trim()
@@ -927,33 +697,7 @@ async function deleteCompany() {
 {% endif %}
 </script>
 
-<!-- Predeclared datalists for native HTML autocomplete hints -->
-<datalist id="person-suggestions"></datalist>
-<datalist id="tag-secteur"></datalist>
-<datalist id="tag-core_business"></datalist>
-<datalist id="tag-education"></datalist>
-<datalist id="tag-professional"></datalist>
-
 <style>
-.autocomplete-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: rgba(30, 30, 46, 0.95);
-    border: 1px solid rgba(100, 181, 246, 0.3);
-    border-radius: 6px;
-    z-index: 10;
-    max-height: 220px;
-    overflow: auto;
-}
-.autocomplete-item {
-    padding: 0.5rem 0.75rem;
-    cursor: pointer;
-}
-.autocomplete-item:hover {
-    background: rgba(100, 181, 246, 0.15);
-}
 .tag-container {
     border: 1px solid rgba(100, 181, 246, 0.3);
     border-radius: 8px;
