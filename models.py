@@ -50,6 +50,10 @@ class BackgroundTypeEnum(str, Enum):
     EDUCATION = "education"
     PROFESSIONAL = "professional"
 
+class CareerTrackEnum(str, Enum):
+    IC = "IC"
+    MANAGEMENT = "management"
+
 # Background models
 class EducationBackground(BaseModel):
     institution: str
@@ -98,6 +102,30 @@ class PersonBase(BaseModel):
 
 class Person(PersonBase):
     id: int
+    
+    class Config:
+        from_attributes = True
+
+class EmployeeBase(BaseModel):
+    person_id: Optional[int] = None
+    name: str
+    title: Optional[str] = None
+    role: Optional[str] = None
+    department: Optional[str] = None
+    career_track: Optional[CareerTrackEnum] = None
+    background_type: Optional[BackgroundTypeEnum] = None
+    education_background: Optional[EducationBackground] = None
+    professional_background: Optional[ProfessionalBackground] = None
+    education_tags: List[str] = []
+    professional_tags: List[str] = []
+    background: Optional[str] = None
+
+class EmployeeCreate(EmployeeBase):
+    pass
+
+class Employee(EmployeeBase):
+    id: int
+    company_id: int
     
     class Config:
         from_attributes = True
@@ -160,6 +188,7 @@ class CompanyBase(BaseModel):
 
 class CompanyCreate(CompanyBase):
     founders: List[FounderCreate] = []
+    employees: List[EmployeeCreate] = []
     investors: List[str] = []  # List of investor names
     relations: List[CompanyRelationCreate] = []
     # New tag system
@@ -179,6 +208,7 @@ class CompanyUpdate(BaseModel):
     founded_year: Optional[int] = None
     last_funding: Optional[str] = None
     founders: Optional[List[FounderCreate]] = None
+    employees: Optional[List[EmployeeCreate]] = None
     investors: Optional[List[str]] = None
     relations: Optional[List[CompanyRelationCreate]] = None
     # New tag system
@@ -191,6 +221,7 @@ class Company(CompanyBase):
     created_at: datetime
     updated_at: datetime
     founders: List[Founder] = []
+    employees: List[Employee] = []
     investors: List[Investor] = []
     tags: List[Tag] = []
     

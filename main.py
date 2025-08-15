@@ -138,6 +138,87 @@ def read_companies(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/companies/filter", response_model=List[models.Company])
+def filter_companies_api(
+    tags: Optional[str] = None,  # comma-separated tag names
+    work_intensity_value: Optional[str] = None,
+    work_intensity_cmp: Optional[str] = None,  # lte/gte/eq
+    company_size_value: Optional[str] = None,
+    company_size_cmp: Optional[str] = None,  # lte/gte/eq
+    high_profile_value: Optional[int] = None,
+    high_profile_cmp: Optional[str] = None,  # lte/gte/eq
+    remuneration_value: Optional[int] = None,
+    remuneration_cmp: Optional[str] = None,  # lte/gte/eq
+    db: Session = Depends(database.get_db)
+):
+    try:
+        tag_list = [t.strip() for t in tags.split(',')] if tags else None
+        companies = crud.filter_companies(
+            db,
+            tags=tag_list,
+            work_intensity_value=work_intensity_value,
+            work_intensity_cmp=work_intensity_cmp,
+            company_size_value=company_size_value,
+            company_size_cmp=company_size_cmp,
+            high_profile_value=high_profile_value,
+            high_profile_cmp=high_profile_cmp,
+            remuneration_value=remuneration_value,
+            remuneration_cmp=remuneration_cmp
+        )
+        return companies
+    except Exception as e:
+        print(f"Error filtering companies: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/graph/companies")
+def companies_graph(db: Session = Depends(database.get_db)):
+    try:
+        # Build nodes
+        companies = crud.get_companies(db)
+        nodes = [
+            {"id": f"company-{c.id}", "label": c.name, "type": "company"}
+            for c in companies
+        ]
+        # Build person nodes (cofounders/employees) and edges
+        persons = db.query(database.Person).all()
+        nodes += [
+            {"id": f"person-{p.id}", "label": p.name, "type": "person"}
+            for p in persons
+        ]
+        links = []
+        # founder links
+        for f in db.query(database.Founder).all():
+            if f.person_id:
+                links.append({"source": f"person-{f.person_id}", "target": f"company-{f.company_id}", "relation": "founder"})
+        # employee links
+        for e in db.query(database.Employee).all():
+            if e.person_id:
+                links.append({"source": f"person-{e.person_id}", "target": f"company-{e.company_id}", "relation": "employee"})
+        # same school/company inferred links between persons
+        # simple heuristic: same education_institution or professional_company
+        person_map = {p.id: p for p in persons}
+        founders = db.query(database.Founder).all()
+        employees = db.query(database.Employee).all()
+        def index_by(attr, items):
+            d = {}
+            for it in items:
+                key = getattr(it, attr, None)
+                if key:
+                    d.setdefault(key, []).append(it)
+            return d
+        for attr in ["education_institution", "professional_company"]:
+            for group in index_by(attr, founders + employees).values():
+                ids = [g.person_id for g in group if g.person_id]
+                for i in range(len(ids)):
+                    for j in range(i+1, len(ids)):
+                        links.append({"source": f"person-{ids[i]}", "target": f"person-{ids[j]}", "relation": attr})
+        return {"nodes": nodes, "links": links}
+    except Exception as e:
+        print(f"Error creating graph: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/companies", response_model=models.Company)
 def create_company(company: models.CompanyCreate, db: Session = Depends(database.get_db)):
     try:
@@ -270,7 +351,33 @@ def list_persons(limit: int = 200, db: Session = Depends(database.get_db)):
 @app.get("/", response_class=HTMLResponse)
 def read_companies_web(request: Request, db: Session = Depends(database.get_db)):
     try:
-        companies = crud.get_companies(db)
+        qp = request.query_params
+        tags = qp.get("tags")
+        work_intensity_value = qp.get("work_intensity_value")
+        work_intensity_cmp = qp.get("work_intensity_cmp")
+        company_size_value = qp.get("company_size_value")
+        company_size_cmp = qp.get("company_size_cmp")
+        high_profile_value = qp.get("high_profile_value")
+        high_profile_cmp = qp.get("high_profile_cmp")
+        remuneration_value = qp.get("remuneration_value")
+        remuneration_cmp = qp.get("remuneration_cmp")
+
+        if any([tags, work_intensity_value, company_size_value, high_profile_value, remuneration_value]):
+            tag_list = [t.strip() for t in tags.split(',')] if tags else None
+            companies = crud.filter_companies(
+                db,
+                tags=tag_list,
+                work_intensity_value=work_intensity_value,
+                work_intensity_cmp=work_intensity_cmp,
+                company_size_value=company_size_value,
+                company_size_cmp=company_size_cmp,
+                high_profile_value=int(high_profile_value) if high_profile_value else None,
+                high_profile_cmp=high_profile_cmp,
+                remuneration_value=int(remuneration_value) if remuneration_value else None,
+                remuneration_cmp=remuneration_cmp
+            )
+        else:
+            companies = crud.get_companies(db)
         return templates.TemplateResponse("index.html", {"request": request, "companies": companies})
     except Exception as e:
         print(f"Error in web interface: {e}")
@@ -370,6 +477,10 @@ def view_company(request: Request, company_id: int, db: Session = Depends(databa
 @app.get("/error", response_class=HTMLResponse)
 def error_page(request: Request):
     return templates.TemplateResponse("error.html", {"request": request, "error": "Une erreur est survenue"})
+
+@app.get("/graph", response_class=HTMLResponse)
+def graph_page(request: Request):
+    return templates.TemplateResponse("graph.html", {"request": request})
 
 # Initialize sample data on startup
 @app.on_event("startup")

@@ -34,6 +34,14 @@ founder_tag_table = Table(
     Column('created_at', DateTime, default=datetime.utcnow)
 )
 
+employee_tag_table = Table(
+    'employee_tags',
+    Base.metadata,
+    Column('employee_id', Integer, ForeignKey('employees.id')),
+    Column('tag_id', Integer, ForeignKey('tags.id')),
+    Column('created_at', DateTime, default=datetime.utcnow)
+)
+
 class Company(Base):
     __tablename__ = "companies"
     
@@ -61,6 +69,7 @@ class Company(Base):
     
     # Relationships
     founders = relationship("Founder", back_populates="company", cascade="all, delete-orphan")
+    employees = relationship("Employee", back_populates="company", cascade="all, delete-orphan")
     investors = relationship("Investor", secondary=company_investor_table, back_populates="companies")
     tags = relationship("Tag", secondary=company_tag_table, back_populates="companies")
     
@@ -138,6 +147,7 @@ class Tag(Base):
     
     companies = relationship("Company", secondary=company_tag_table, back_populates="tags")
     founders = relationship("Founder", secondary=founder_tag_table, back_populates="tags")
+    employees = relationship("Employee", secondary=employee_tag_table, back_populates="tags")
 
 class CompanyRelation(Base):
     __tablename__ = "company_relations"
@@ -158,6 +168,41 @@ class Person(Base):
     
     # A person can be founder/employee in multiple companies (different roles)
     founder_roles = relationship("Founder", back_populates="person")
+    employee_roles = relationship("Employee", back_populates="person")
+
+class Employee(Base):
+    __tablename__ = "employees"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    title = Column(String)
+    role = Column(String)
+    department = Column(String)
+    career_track = Column(String)  # IC or management
+    person_id = Column(Integer, ForeignKey("people.id"), nullable=True, index=True)
+
+    # Background information
+    background_type = Column(String)
+
+    # Education background
+    education_institution = Column(String)
+    education_degree = Column(String)
+    education_field = Column(String)
+    education_year = Column(Integer)
+
+    # Professional background
+    professional_company = Column(String)
+    professional_position = Column(String)
+    professional_duration = Column(String)
+    professional_description = Column(Text)
+
+    # Legacy
+    background = Column(Text)
+
+    company_id = Column(Integer, ForeignKey("companies.id"))
+    company = relationship("Company", back_populates="employees")
+    tags = relationship("Tag", secondary=employee_tag_table, back_populates="employees")
+    person = relationship("Person", back_populates="employee_roles")
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
@@ -177,6 +222,19 @@ def migrate_schema():
 
         # Ensure people table exists (create_all above should create it)
         conn.execute(text("CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY, name VARCHAR NOT NULL UNIQUE)"))
+        # Ensure employees table exists
+        conn.execute(text("CREATE TABLE IF NOT EXISTS employees (id INTEGER PRIMARY KEY, name VARCHAR NOT NULL, title VARCHAR, role VARCHAR, department VARCHAR, career_track VARCHAR, person_id INTEGER, background_type VARCHAR, education_institution VARCHAR, education_degree VARCHAR, education_field VARCHAR, education_year INTEGER, professional_company VARCHAR, professional_position VARCHAR, professional_duration VARCHAR, professional_description TEXT, background TEXT, company_id INTEGER)"))
+        # Add columns if missing
+        res = conn.execute(text("PRAGMA table_info(employees)"))
+        ecols = [row[1] for row in res]
+        if 'role' not in ecols:
+            conn.execute(text("ALTER TABLE employees ADD COLUMN role VARCHAR"))
+        if 'department' not in ecols:
+            conn.execute(text("ALTER TABLE employees ADD COLUMN department VARCHAR"))
+        if 'career_track' not in ecols:
+            conn.execute(text("ALTER TABLE employees ADD COLUMN career_track VARCHAR"))
+        # Ensure employee_tags exists
+        conn.execute(text("CREATE TABLE IF NOT EXISTS employee_tags (employee_id INTEGER, tag_id INTEGER, created_at DATETIME)"))
 
         # Backfill people from existing founders if they have no person_id
         # 1) Insert missing persons for distinct founder names

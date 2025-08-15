@@ -86,25 +86,24 @@
             
             <div class="grid-4">
                 <div class="form-group">
-                    <label for="high_profile">High Profile (1-5)</label>
-                    <input type="range" id="high_profile" name="high_profile" min="1" max="5" 
-                           value="{% if company %}{{ company.high_profile }}{% else %}3{% endif %}">
-                    <span id="high_profile_display">{% if company %}{{ company.high_profile }}{% else %}3{% endif %}/5</span>
+                    <label for="high_profile">Niveau de profil</label>
+                    <select id="high_profile" name="high_profile">
+                        <option value="5" {% if company and company.high_profile == 5 %}selected{% endif %}>High profile</option>
+                        <option value="4" {% if company and company.high_profile == 4 %}selected{% endif %}>Above average profile</option>
+                        <option value="3" {% if not company or company.high_profile == 3 %}selected{% endif %}>Average profile</option>
+                        <option value="2" {% if company and company.high_profile == 2 %}selected{% endif %}>Easy of access</option>
+                        <option value="1" {% if company and company.high_profile == 1 %}selected{% endif %}>Unlearning factory</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label for="remuneration">Rémunération (1-5)</label>
-                    <input type="range" id="remuneration" name="remuneration" min="1" max="5" 
-                           value="{% if company %}{{ company.remuneration or 3 }}{% else %}3{% endif %}">
-                    <span id="remuneration_display">
-                        {% if company and company.remuneration %}
-                            {% if company.remuneration == 1 %}Underpaying
-                            {% elif company.remuneration == 2 %}Below Market
-                            {% elif company.remuneration == 3 %}At Market
-                            {% elif company.remuneration == 4 %}Over Market
-                            {% elif company.remuneration == 5 %}Overpaying
-                            {% endif %}
-                        {% else %}At Market{% endif %}
-                    </span>
+                    <label for="remuneration">Rémunération</label>
+                    <select id="remuneration" name="remuneration">
+                        <option value="5" {% if company and company.remuneration == 5 %}selected{% endif %}>Overpaying</option>
+                        <option value="4" {% if company and company.remuneration == 4 %}selected{% endif %}>Above Market</option>
+                        <option value="3" {% if not company or company.remuneration == 3 %}selected{% endif %}>At Market</option>
+                        <option value="2" {% if company and company.remuneration == 2 %}selected{% endif %}>Below Market</option>
+                        <option value="1" {% if company and company.remuneration == 1 %}selected{% endif %}>Underpaying</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="work_intensity">Work Intensity</label>
@@ -323,6 +322,13 @@
             <button type="button" class="btn btn-secondary" onclick="addFounder()">+ Ajouter founder</button>
         </div>
 
+        <!-- EMPLOYÉS -->
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Employés</h3>
+            <div id="employees-section"></div>
+            <button type="button" class="btn btn-secondary" onclick="addEmployee()">+ Ajouter employé</button>
+        </div>
+
         <!-- INVESTORS -->
         <div class="card">
             <h3 style="color: #64b5f6; margin-bottom: 1rem;">Investisseurs</h3>
@@ -406,18 +412,10 @@ function initializeTagSystem() {
         });
     });
     
-    // Sliders
-    document.getElementById('high_profile').addEventListener('input', function() {
-        document.getElementById('high_profile_display').textContent = this.value + '/5';
-    });
-
-            const remunerationLabels = {1: 'Underpaying', 2: 'Below Market', 3: 'At Market', 4: 'Over Market', 5: 'Overpaying'};
-            setupFounderAutocomplete();
-            setupTagAutocomplete();
-            preloadPersonAndTagSuggestions();
-    document.getElementById('remuneration').addEventListener('input', function() {
-        document.getElementById('remuneration_display').textContent = remunerationLabels[this.value];
-    });
+    const remunerationLabels = {1: 'Underpaying', 2: 'Below Market', 3: 'At Market', 4: 'Above Market', 5: 'Overpaying'};
+    setupFounderAutocomplete();
+    setupTagAutocomplete();
+    preloadPersonAndTagSuggestions();
 }
 // Preload initial suggestions into local datastores to make the UI immediately show options
 let preloadCache = { persons: [], tags: { secteur: [], core_business: [], education: [], professional: [] } };
@@ -526,6 +524,8 @@ function setupFounderAutocomplete() {
         document.querySelectorAll('.autocomplete-list').forEach(list => {
             if (!list.contains(e.target) && list.previousElementSibling !== e.target) {
                 list.style.display = 'none';
+                const card = list.closest('.card');
+                if (card) card.style.zIndex = '';
             }
         });
     });
@@ -545,6 +545,8 @@ function onFounderInput(inputEl) {
                 inputEl.value = item.label;
                 if (hidden) hidden.value = item.value;
                 list.style.display = 'none';
+                const c = list.closest('.card');
+                if (c) c.style.zIndex = '';
             });
             return;
         }
@@ -556,6 +558,8 @@ function onFounderInput(inputEl) {
                     inputEl.value = item.label;
                     if (hidden) hidden.value = item.value;
                     list.style.display = 'none';
+                    const c = list.closest('.card');
+                    if (c) c.style.zIndex = '';
                 });
             })
             .catch(() => { if (list) list.style.display = 'none'; });
@@ -570,6 +574,8 @@ function onFounderInput(inputEl) {
                 inputEl.value = item.label;
                 if (hidden) hidden.value = item.value;
                 list.style.display = 'none';
+                const c = list.closest('.card');
+                if (c) c.style.zIndex = '';
             });
         } catch (e) {
             // ignore
@@ -582,6 +588,8 @@ function renderAutocompleteList(listEl, items, onClick) {
     listEl.innerHTML = '';
     if (!items || items.length === 0) {
         listEl.style.display = 'none';
+        const c = listEl.closest('.card');
+        if (c) c.style.zIndex = '';
         return;
     }
     items.forEach(it => {
@@ -592,6 +600,8 @@ function renderAutocompleteList(listEl, items, onClick) {
         listEl.appendChild(div);
     });
     listEl.style.display = 'block';
+    const c = listEl.closest('.card');
+    if (c) c.style.zIndex = '1000';
 }
 
 // --- Autocomplete for tags ---
@@ -615,6 +625,8 @@ function onTagInput(input) {
                 addTag(input, item.label);
                 input.value = '';
                 list.style.display = 'none';
+                const c = list.closest('.card');
+                if (c) c.style.zIndex = '';
             });
             return;
         }
@@ -626,6 +638,8 @@ function onTagInput(input) {
                     addTag(input, item.label);
                     input.value = '';
                     list.style.display = 'none';
+                    const c = list.closest('.card');
+                    if (c) c.style.zIndex = '';
                 });
             })
             .catch(() => { if (list) list.style.display = 'none'; });
@@ -640,6 +654,8 @@ function onTagInput(input) {
                 addTag(input, item.label);
                 input.value = '';
                 list.style.display = 'none';
+                const c = list.closest('.card');
+                if (c) c.style.zIndex = '';
             });
         } catch (e) {
             // ignore
@@ -649,9 +665,10 @@ function onTagInput(input) {
 
 // Toggle background fields
 function toggleBackgroundFields(checkbox) {
-    const founderItem = checkbox.closest('.founder-item');
-    const educationFields = founderItem.querySelector('.education-fields');
-    const professionalFields = founderItem.querySelector('.professional-fields');
+    const container = checkbox.closest('.founder-item, [data-employee-id]');
+    if (!container) return;
+    const educationFields = container.querySelector('.education-fields');
+    const professionalFields = container.querySelector('.professional-fields');
     const type = checkbox.dataset.type;
     
     if (type === 'education') {
@@ -668,7 +685,7 @@ function addFounder() {
     const founderId = founderCounter++;
     
     const div = document.createElement('div');
-    div.className = 'founder-item';
+    div.className = 'employee-item';
     div.dataset.founderId = founderId;
     div.innerHTML = `
         <div class="grid-2">
@@ -774,6 +791,177 @@ function addFounder() {
     if (founderNameInput) founderNameInput.addEventListener('focus', () => onFounderInput(founderNameInput));
 }
 
+// Employees UI (similar to founders, simplified)
+let employeeCounter = 0;
+function addEmployee(prefill) {
+    const section = document.getElementById('employees-section');
+    const employeeId = employeeCounter++;
+    const div = document.createElement('div');
+    div.className = 'founder-item';
+    div.dataset.employeeId = employeeId;
+    div.innerHTML = `
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Nom</label>
+                <div style="position: relative;">
+                    <input type="text" name="employee_name" oninput="onEmployeeInput(this)" autocomplete="off">
+                    <input type="hidden" name="employee_person_id" value="">
+                    <div class="autocomplete-list" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Titre</label>
+                <input type="text" name="employee_title">
+            </div>
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Rôle</label>
+                <input type="text" name="employee_role" placeholder="ex: Staff Engineer, Product Manager">
+            </div>
+            <div class="form-group">
+                <label>Département</label>
+                <input type="text" name="employee_department" placeholder="ex: Engineering, Product, Sales">
+            </div>
+            <div class="form-group">
+                <label>Parcours</label>
+                <select name="employee_career_track">
+                    <option value="">(non précisé)</option>
+                    <option value="IC">IC</option>
+                    <option value="management">Management</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Background</label>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" class="background-checkbox" data-type="education" onchange="toggleBackgroundFields(this)">
+                    Éducation
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" class="background-checkbox" data-type="professional" onchange="toggleBackgroundFields(this)">
+                    Professionnel
+                </label>
+            </div>
+        </div>
+        <div class="education-fields" style="display: none;">
+            <h4 style="color: #64b5f6;">Éducation</h4>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Institution</label>
+                    <input type="text" name="employee_education_institution">
+                </div>
+                <div class="form-group">
+                    <label>Diplôme</label>
+                    <input type="text" name="employee_education_degree">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Écoles/Institutions</label>
+                <div class="tag-container" data-category="education" data-employee-id="${employeeId}">
+                    <div class="tag-display" id="emp-education-tags-${employeeId}"></div>
+                    <input type="text" class="tag-input" placeholder="Tapez une école et appuyez sur Entrée..." data-category="education" data-employee-id="${employeeId}">
+                    <div class="autocomplete-list" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="professional-fields" style="display: none;">
+            <h4 style="color: #64b5f6;">Expérience Professionnelle</h4>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Entreprise</label>
+                    <input type="text" name="employee_professional_company">
+                </div>
+                <div class="form-group">
+                    <label>Poste</label>
+                    <input type="text" name="employee_professional_position">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Entreprises précédentes</label>
+                <div class="tag-container" data-category="professional" data-employee-id="${employeeId}">
+                    <div class="tag-display" id="emp-professional-tags-${employeeId}"></div>
+                    <input type="text" class="tag-input" placeholder="Tapez une entreprise et appuyez sur Entrée..." data-category="professional" data-employee-id="${employeeId}">
+                    <div class="autocomplete-list" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="removeEmployee(this)">Supprimer</button>
+    `;
+    section.appendChild(div);
+    // Hook events
+    div.querySelectorAll('.tag-input').forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                const tagName = input.value.trim();
+                if (tagName) {
+                    addTag(input, tagName);
+                    input.value = '';
+                }
+                return false;
+            }
+        });
+        input.addEventListener('input', () => onTagInput(input));
+        input.addEventListener('focus', () => onTagInput(input));
+    });
+}
+
+function removeEmployee(btn) {
+    const el = btn.closest('.employee-item');
+    if (el) el.remove();
+}
+
+let employeeSearchDebounce;
+function onEmployeeInput(inputEl) {
+    const hidden = inputEl.parentElement.querySelector('input[name="employee_person_id"]');
+    if (hidden) hidden.value = '';
+    const q = inputEl.value.trim();
+    const list = inputEl.parentElement.querySelector('.autocomplete-list');
+    if (!q) {
+        const useItems = (preloadCache.persons || []).slice(0, 8).map(p => ({ label: p.name, value: p.id }));
+        if (useItems.length > 0) {
+            renderAutocompleteList(list, useItems, (item) => {
+                inputEl.value = item.label;
+                if (hidden) hidden.value = item.value;
+                list.style.display = 'none';
+                const c = list.closest('.card');
+                if (c) c.style.zIndex = '';
+            });
+            return;
+        }
+        fetch('/api/persons')
+            .then(r => r.json())
+            .then(arr => {
+                renderAutocompleteList(list, (arr || []).slice(0, 8).map(p => ({ label: p.name, value: p.id })), (item) => {
+                    inputEl.value = item.label;
+                    if (hidden) hidden.value = item.value;
+                    list.style.display = 'none';
+                    const c = list.closest('.card');
+                    if (c) c.style.zIndex = '';
+                });
+            })
+            .catch(() => { if (list) list.style.display = 'none'; });
+        return;
+    }
+    clearTimeout(employeeSearchDebounce);
+    employeeSearchDebounce = setTimeout(async () => {
+        try {
+            const resp = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}&limit=8`);
+            const results = await resp.json();
+            renderAutocompleteList(list, results.map(r => ({ label: r.name, value: r.id })), (item) => {
+                inputEl.value = item.label;
+                if (hidden) hidden.value = item.value;
+                list.style.display = 'none';
+                const c = list.closest('.card');
+                if (c) c.style.zIndex = '';
+            });
+        } catch (e) {}
+    }, 150);
+}
+
 function removeFounder(btn) {
     btn.closest('.founder-item').remove();
 }
@@ -803,7 +991,7 @@ function setupFormSubmission() {
         
         // Collect founders
         const founders = [];
-        document.querySelectorAll('.founder-item').forEach((item, index) => {
+        document.querySelectorAll('.founder-item[data-founder-id]').forEach((item, index) => {
             const name = item.querySelector('input[name="founder_name"]').value.trim();
             if (name) {
                 const founder = {
@@ -858,6 +1046,59 @@ function setupFormSubmission() {
             if (name) investors.push(name);
         });
         
+        // Collect employees (null-safe)
+        const employees = [];
+        document.querySelectorAll('[data-employee-id]').forEach((item) => {
+            const nameEl = item.querySelector('input[name="employee_name"]');
+            const name = nameEl ? nameEl.value.trim() : '';
+            if (!name) return;
+            const titleEl = item.querySelector('input[name="employee_title"]');
+            const emp = {
+                name: name,
+                title: titleEl ? titleEl.value.trim() : ''
+            };
+            const roleEl = item.querySelector('input[name="employee_role"]');
+            if (roleEl && roleEl.value.trim()) emp.role = roleEl.value.trim();
+            const depEl = item.querySelector('input[name="employee_department"]');
+            if (depEl && depEl.value.trim()) emp.department = depEl.value.trim();
+            const trackEl = item.querySelector('select[name="employee_career_track"]');
+            if (trackEl && trackEl.value) emp.career_track = trackEl.value;
+
+            const pidEl = item.querySelector('input[name="employee_person_id"]');
+            const pid = pidEl ? pidEl.value.trim() : '';
+            if (pid) emp.person_id = parseInt(pid, 10);
+
+            const eduCheckbox = item.querySelector('.background-checkbox[data-type="education"]');
+            const eduOn = !!(eduCheckbox && eduCheckbox.checked);
+            if (eduOn) {
+                emp.background_type = 'education';
+                const instEl = item.querySelector('input[name="employee_education_institution"]');
+                const degreeEl = item.querySelector('input[name="employee_education_degree"]');
+                emp.education_background = {
+                    institution: instEl ? instEl.value.trim() : '',
+                    degree: degreeEl ? degreeEl.value.trim() : ''
+                };
+                const edTags = [];
+                item.querySelectorAll('[data-category="education"] .tag').forEach(t => edTags.push(t.dataset.tag));
+                emp.education_tags = edTags;
+            }
+            const proCheckbox = item.querySelector('.background-checkbox[data-type="professional"]');
+            const proOn = !!(proCheckbox && proCheckbox.checked);
+            if (proOn) {
+                if (!emp.background_type) emp.background_type = 'professional';
+                const compEl = item.querySelector('input[name="employee_professional_company"]');
+                const posEl = item.querySelector('input[name="employee_professional_position"]');
+                emp.professional_background = {
+                    company: compEl ? compEl.value.trim() : '',
+                    position: posEl ? posEl.value.trim() : ''
+                };
+                const prTags = [];
+                item.querySelectorAll('[data-category="professional"] .tag').forEach(t => prTags.push(t.dataset.tag));
+                emp.professional_tags = prTags;
+            }
+            employees.push(emp);
+        });
+        
         // Collect company tags
         const secteurTags = [];
         document.querySelectorAll('[data-category="secteur"] .tag').forEach(tag => {
@@ -881,6 +1122,7 @@ function setupFormSubmission() {
             founded_year: formData.get('founded_year') ? parseInt(formData.get('founded_year')) : null,
             last_funding: formData.get('last_funding') || null,
             founders: founders,
+            employees: employees,
             investors: investors,
             secteur_tags: secteurTags,
             core_business_tags: coreBusinessTags,
@@ -960,6 +1202,8 @@ async function deleteCompany() {
     background: rgba(30, 30, 46, 0.4);
     padding: 0.5rem;
     min-height: 60px;
+    position: relative;
+    overflow: visible;
 }
 
 .tag-display {

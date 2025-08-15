@@ -29,6 +29,75 @@ def get_companies(db: Session, skip: int = 0, limit: int = 100, search: str = No
     
     return query.offset(skip).limit(limit).all()
 
+def filter_companies(
+    db: Session,
+    tags: list[str] | None = None,
+    work_intensity_value: str | None = None,
+    work_intensity_cmp: str | None = None,  # 'lte' | 'gte' | 'eq'
+    company_size_value: str | None = None,
+    company_size_cmp: str | None = None,  # 'gte' | 'lte' | 'eq'
+    high_profile_value: int | None = None,
+    high_profile_cmp: str | None = None,  # 'gte' | 'lte' | 'eq'
+    remuneration_value: int | None = None,
+    remuneration_cmp: str | None = None   # 'gte' | 'lte' | 'eq'
+):
+    query = db.query(database.Company)
+    if tags:
+        # Companies having ALL requested tags
+        query = query.join(database.company_tag_table, database.Company.id == database.company_tag_table.c.company_id)
+        query = query.join(database.Tag, database.Tag.id == database.company_tag_table.c.tag_id)
+        for t in tags:
+            query = query.filter(database.Tag.name == t)
+
+    # Ordinal filters
+    if work_intensity_value:
+        order = ['chill', 'balanced', 'intense', 'bourrin']
+        if work_intensity_value in order:
+            idx = order.index(work_intensity_value)
+            cmp = work_intensity_cmp or 'eq'
+            if cmp == 'lte':
+                allowed = set(order[: idx + 1])
+                query = query.filter(database.Company.work_intensity.in_(allowed))
+            elif cmp == 'gte':
+                allowed = set(order[idx:])
+                query = query.filter(database.Company.work_intensity.in_(allowed))
+            else:  # eq
+                query = query.filter(database.Company.work_intensity == work_intensity_value)
+
+    if company_size_value:
+        order = ['early', 'startup', 'scaleup', 'corp']
+        if company_size_value in order:
+            idx = order.index(company_size_value)
+            cmp = company_size_cmp or 'eq'
+            if cmp == 'lte':
+                allowed = set(order[: idx + 1])
+                query = query.filter(database.Company.company_size.in_(allowed))
+            elif cmp == 'gte':
+                allowed = set(order[idx:])
+                query = query.filter(database.Company.company_size.in_(allowed))
+            else:  # eq
+                query = query.filter(database.Company.company_size == company_size_value)
+
+    # Numeric filters
+    if high_profile_value is not None:
+        cmp = high_profile_cmp or 'gte'
+        if cmp == 'lte':
+            query = query.filter(database.Company.high_profile <= high_profile_value)
+        elif cmp == 'eq':
+            query = query.filter(database.Company.high_profile == high_profile_value)
+        else:
+            query = query.filter(database.Company.high_profile >= high_profile_value)
+
+    if remuneration_value is not None:
+        cmp = remuneration_cmp or 'gte'
+        if cmp == 'lte':
+            query = query.filter(database.Company.remuneration <= remuneration_value)
+        elif cmp == 'eq':
+            query = query.filter(database.Company.remuneration == remuneration_value)
+        else:
+            query = query.filter(database.Company.remuneration >= remuneration_value)
+    return query.distinct().all()
+
 def create_company(db: Session, company: models.CompanyCreate):
     # Create company
     db_company = database.Company(
@@ -153,6 +222,44 @@ def create_company(db: Session, company: models.CompanyCreate):
             
             db.add(relation)
     
+    # Add employees if any
+    if getattr(company, 'employees', None):
+        for emp in company.employees:
+            person = get_or_create_person(db, emp)
+            employee = database.Employee(
+                name=emp.name,
+                title=emp.title,
+                role=getattr(emp, 'role', None),
+                department=getattr(emp, 'department', None),
+                career_track=getattr(emp, 'career_track', None).value if getattr(getattr(emp, 'career_track', None), 'value', None) else getattr(emp, 'career_track', None),
+                background_type=emp.background_type.value if getattr(emp.background_type, 'value', None) else emp.background_type,
+                background=emp.background,
+                company_id=db_company.id,
+                person_id=person.id if person else None
+            )
+            if emp.education_background:
+                employee.education_institution = emp.education_background.institution
+                employee.education_degree = emp.education_background.degree
+                employee.education_field = emp.education_background.field
+                employee.education_year = emp.education_background.year
+            if emp.professional_background:
+                employee.professional_company = emp.professional_background.company
+                employee.professional_position = emp.professional_background.position
+                employee.professional_duration = emp.professional_background.duration
+                employee.professional_description = emp.professional_background.description
+            db.add(employee)
+            db.flush()
+            if getattr(emp, 'education_tags', None):
+                for t in emp.education_tags:
+                    if t.strip():
+                        tag = get_or_create_tag(db, t.strip(), 'education')
+                        employee.tags.append(tag)
+            if getattr(emp, 'professional_tags', None):
+                for t in emp.professional_tags:
+                    if t.strip():
+                        tag = get_or_create_tag(db, t.strip(), 'professional')
+                        employee.tags.append(tag)
+    
     db.commit()
     db.refresh(db_company)
     return db_company
@@ -163,7 +270,7 @@ def update_company(db: Session, company_id: int, company_update: models.CompanyU
         return None
     
     # Update basic fields
-    update_data = company_update.dict(exclude_unset=True, exclude={'founders', 'investors', 'relations'})
+    update_data = company_update.dict(exclude_unset=True, exclude={'founders', 'employees', 'investors', 'relations'})
     for field, value in update_data.items():
         # Convert enum values to strings
         if hasattr(value, 'value'):
@@ -226,6 +333,48 @@ def update_company(db: Session, company_id: int, company_update: models.CompanyU
             # Propagate to other founder roles for the same person
             if founder.person_id:
                 propagate_founder_profile(db, founder)
+
+    # Update employees if provided
+    if getattr(company_update, 'employees', None) is not None:
+        # Delete existing employees
+        db.query(database.Employee).filter(database.Employee.company_id == company_id).delete()
+        # Add new employees
+        for emp in company_update.employees:
+            person = get_or_create_person(db, emp)
+            employee = database.Employee(
+                name=emp.name,
+                title=emp.title,
+                role=getattr(emp, 'role', None),
+                department=getattr(emp, 'department', None),
+                career_track=getattr(emp, 'career_track', None).value if getattr(getattr(emp, 'career_track', None), 'value', None) else getattr(emp, 'career_track', None),
+                background_type=emp.background_type.value if getattr(emp.background_type, 'value', None) else emp.background_type,
+                background=emp.background,
+                company_id=company_id,
+                person_id=person.id if person else None
+            )
+            if emp.education_background:
+                employee.education_institution = emp.education_background.institution
+                employee.education_degree = emp.education_background.degree
+                employee.education_field = emp.education_background.field
+                employee.education_year = emp.education_background.year
+            if emp.professional_background:
+                employee.professional_company = emp.professional_background.company
+                employee.professional_position = emp.professional_background.position
+                employee.professional_duration = emp.professional_background.duration
+                employee.professional_description = emp.professional_background.description
+            db.add(employee)
+            db.flush()
+            # Tags
+            if getattr(emp, 'education_tags', None):
+                for t in emp.education_tags:
+                    if t.strip():
+                        tag = get_or_create_tag(db, t.strip(), 'education')
+                        employee.tags.append(tag)
+            if getattr(emp, 'professional_tags', None):
+                for t in emp.professional_tags:
+                    if t.strip():
+                        tag = get_or_create_tag(db, t.strip(), 'professional')
+                        employee.tags.append(tag)
     
     # Update investors if provided
     if company_update.investors is not None:
@@ -358,11 +507,12 @@ def get_or_create_person(db: Session, founder_data: models.FounderCreate):
                 db.flush()
             return person
     # Otherwise match by exact name
-    if founder_data.name:
-        person = get_person_by_name(db, founder_data.name)
+    name = getattr(founder_data, 'name', None)
+    if name:
+        person = get_person_by_name(db, name)
         if person:
             return person
-        return create_person(db, founder_data.name)
+        return create_person(db, name)
     return None
 
 def propagate_founder_profile(db: Session, source_founder: database.Founder):

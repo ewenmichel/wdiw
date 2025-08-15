@@ -90,6 +90,8 @@
             margin-bottom: 1rem;
             border: 1px solid rgba(100, 181, 246, 0.2);
             backdrop-filter: blur(10px);
+            position: relative; /* allow z-index stacking for child popovers */
+            z-index: 0;
         }
 
         .form-group {
@@ -101,6 +103,21 @@
             margin-bottom: 0.5rem;
             color: #64b5f6;
             font-weight: 600;
+        }
+        .form-group label .op-select {
+            font-weight: 500;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+            background: rgba(100, 181, 246, 0.15);
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            color: #e0e0e0;
+        }
+        .field-under select,
+        .field-under input[type="number"] {
+            margin-top: 4px;
         }
 
         .form-group input,

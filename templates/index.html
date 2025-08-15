@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <h2 style="color: #64b5f6;">Entreprises Tech Françaises</h2>
     <div style="display: flex; gap: 1rem; align-items: center;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -12,6 +12,74 @@
         </div>
         <a href="/companies/new" class="btn btn-primary" id="addButton" style="display: none;">+ Nouvelle entreprise</a>
     </div>
+</div>
+
+<!-- Filtres -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="form-group">
+    <label>Tags (séparés par des virgules)</label>
+    <input type="text" id="filter_tags" placeholder="ex: AI/ML, Data Labeling">
+  </div>
+  <div class="grid-4">
+    <div class="form-group">
+      <label>Intensité <select id="filter_work_intensity_cmp" class="op-select"><option value="lte">≤</option><option value="eq">=</option><option value="gte">≥</option></select></label>
+      <div class="field-under">
+        <select id="filter_work_intensity_value">
+          <option value="">(toutes)</option>
+          <option value="chill">Chill</option>
+          <option value="balanced">Balanced</option>
+          <option value="intense">Intense</option>
+          <option value="bourrin">Bourrin</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Taille <select id="filter_company_size_cmp" class="op-select"><option value="gte">≥</option><option value="eq">=</option><option value="lte">≤</option></select></label>
+      <div class="field-under">
+        <select id="filter_company_size_value">
+          <option value="">(toutes)</option>
+          <option value="early">Early</option>
+          <option value="startup">Startup</option>
+          <option value="scaleup">Scale-up</option>
+          <option value="corp">Corp</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notoriété <select id="filter_high_profile_cmp" class="op-select"><option value="gte">≥</option><option value="eq">=</option><option value="lte">≤</option></select></label>
+      <div class="field-under">
+        <select id="filter_high_profile_value">
+          <option value="">(toutes)</option>
+          <option value="5">High profile</option>
+          <option value="4">Above average profile</option>
+          <option value="3">Average profile</option>
+          <option value="2">Easy of access</option>
+          <option value="1">Unlearning factory</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Rémunération <select id="filter_remuneration_cmp" class="op-select"><option value="gte">≥</option><option value="eq">=</option><option value="lte">≤</option></select></label>
+      <div class="field-under">
+        <select id="filter_remuneration_value">
+          <option value="">(toutes)</option>
+          <option value="5">Overpaying</option>
+          <option value="4">Above Market</option>
+          <option value="3">At Market</option>
+          <option value="2">Below Market</option>
+          <option value="1">Underpaying</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; gap: 0.5rem;">
+    <button class="btn btn-primary" onclick="applyFilters()">Appliquer</button>
+    <button class="btn btn-secondary" onclick="resetFilters()">Réinitialiser</button>
+    <a class="btn btn-secondary" href="/graph">Graph</a>
+  </div>
+  <div id="filterActive" style="margin-top:0.5rem; color:#9e9e9e;"></div>
+  <div id="filterError" style="margin-top:0.5rem; color:#f44336;"></div>
+  <div id="filterCount" style="margin-top:0.5rem; color:#64b5f6;"></div>
 </div>
 
 <div style="display: grid; gap: 1rem;">
@@ -45,7 +113,7 @@
                 <!-- Criteria badges -->
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
                     <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
-                        High Profile: {{ company.high_profile }}/5
+                        Notoriété: {{ company.high_profile }}/5
                     </span>
                     
                     <!-- Rémunération avec gradient de couleur -->
@@ -63,7 +131,7 @@
                     </span>
                     {% elif company.remuneration == 4 %}
                     <span style="background: rgba(139, 195, 74, 0.2); color: #8bc34a; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
-                        💰 Over Market
+                        💰 Above Market
                     </span>
                     {% elif company.remuneration == 5 %}
                     <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">
@@ -168,6 +236,7 @@ function updateModeDisplay() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     updateModeDisplay();
+    initFiltersFromQuery();
 });
 
 async function deleteCompany(companyId, companyName) {
@@ -188,6 +257,59 @@ async function deleteCompany(companyId, companyName) {
             alert('Erreur réseau: ' + error.message);
         }
     }
+}
+
+function buildQuery() {
+  const params = new URLSearchParams();
+  const tags = document.getElementById('filter_tags').value.trim();
+  const wi = document.getElementById('filter_work_intensity_value').value;
+  const wiCmp = document.getElementById('filter_work_intensity_cmp').value;
+  const csCmp = document.getElementById('filter_company_size_cmp').value;
+  const csVal = document.getElementById('filter_company_size_value').value;
+  const hp = document.getElementById('filter_high_profile_value').value;
+  const hpCmp = document.getElementById('filter_high_profile_cmp').value;
+  const rm = document.getElementById('filter_remuneration_value').value;
+  const rmCmp = document.getElementById('filter_remuneration_cmp').value;
+  if (tags) params.set('tags', tags);
+  if (wi) {
+    params.set('work_intensity_value', wi);
+    params.set('work_intensity_cmp', wiCmp || 'eq');
+  }
+  if (csVal) {
+    params.set('company_size_value', csVal);
+    params.set('company_size_cmp', csCmp || 'gte');
+  }
+  if (hp) {
+    params.set('high_profile_value', hp);
+    params.set('high_profile_cmp', hpCmp || 'gte');
+  }
+  if (rm) {
+    params.set('remuneration_value', rm);
+    params.set('remuneration_cmp', rmCmp || 'gte');
+  }
+  return params.toString();
+}
+
+function applyFilters() {
+  const query = buildQuery();
+  window.location.href = query ? `/?${query}` : '/';
+}
+
+function resetFilters() {
+  window.location.href = '/';
+}
+
+function initFiltersFromQuery() {
+  const qp = new URLSearchParams(window.location.search);
+  if (qp.has('tags')) document.getElementById('filter_tags').value = qp.get('tags');
+  if (qp.has('work_intensity_value')) document.getElementById('filter_work_intensity_value').value = qp.get('work_intensity_value');
+  if (qp.has('work_intensity_cmp')) document.getElementById('filter_work_intensity_cmp').value = qp.get('work_intensity_cmp');
+  if (qp.has('company_size_value')) document.getElementById('filter_company_size_value').value = qp.get('company_size_value');
+  if (qp.has('company_size_cmp')) document.getElementById('filter_company_size_cmp').value = qp.get('company_size_cmp');
+  if (qp.has('high_profile_value')) document.getElementById('filter_high_profile_value').value = qp.get('high_profile_value');
+  if (qp.has('high_profile_cmp')) document.getElementById('filter_high_profile_cmp').value = qp.get('high_profile_cmp');
+  if (qp.has('remuneration_value')) document.getElementById('filter_remuneration_value').value = qp.get('remuneration_value');
+  if (qp.has('remuneration_cmp')) document.getElementById('filter_remuneration_cmp').value = qp.get('remuneration_cmp');
 }
 </script>
 {% endblock %}

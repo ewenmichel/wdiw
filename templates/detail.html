@@ -216,6 +216,72 @@
             </div>
         </div>
         {% endif %}
+
+        <!-- Employees Card -->
+        {% if company.employees %}
+        <div class="card">
+            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Employés</h3>
+            <div style="display: grid; gap: 1rem;">
+                {% for emp in company.employees %}
+                <div class="founder-card" style="background: rgba(30, 30, 46, 0.6); padding: 1rem; border-radius: 8px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:0.5rem;">
+                        <div>
+                            <strong style="color:#64b5f6; font-size:1.05rem;">{{ emp.name }}</strong>
+                            {% if emp.title %}<div style="color:#9e9e9e; font-size:0.9rem;">{{ emp.title }}</div>{% endif %}
+                            <div style="color:#9e9e9e; font-size:0.85rem; margin-top:0.25rem;">
+                                {% if emp.role %}<span>🎯 {{ emp.role }}</span>{% endif %}
+                                {% if emp.department %}<span style="margin-left:0.75rem;">🏷️ {{ emp.department }}</span>{% endif %}
+                                {% if emp.career_track %}<span style="margin-left:0.75rem;">🧭 {{ emp.career_track }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                        <div>
+                            <strong style="color:#ff9800; font-size:0.85rem;">Expérience Pro</strong>
+                            <div style="color:#e0e0e0; margin-top:0.3rem;">
+                                {% if emp.professional_company %}<div>🏢 {{ emp.professional_company }}</div>{% endif %}
+                                {% if emp.professional_position %}<div>💼 {{ emp.professional_position }}</div>{% endif %}
+                                {% if emp.professional_duration %}<div>⏱️ {{ emp.professional_duration }}</div>{% endif %}
+                                {% if emp.professional_description %}<div style="font-style:italic;">{{ emp.professional_description }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <strong style="color:#4caf50; font-size:0.85rem;">Éducation</strong>
+                            <div style="color:#e0e0e0; margin-top:0.3rem;">
+                                {% if emp.education_institution %}<div>🎓 {{ emp.education_institution }}</div>{% endif %}
+                                {% if emp.education_degree %}<div>📜 {{ emp.education_degree }}</div>{% endif %}
+                                {% if emp.education_field %}<div>🔬 {{ emp.education_field }}</div>{% endif %}
+                                {% if emp.education_year %}<div>📅 {{ emp.education_year }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% set emp_has_edu_tags = emp.tags | selectattr('category', 'equalto', 'education') | list %}
+                    {% set emp_has_pro_tags = emp.tags | selectattr('category', 'equalto', 'professional') | list %}
+                    {% if emp_has_pro_tags %}
+                    <div style="margin-top:0.6rem;">
+                        <strong style="color:#ff9800; font-size:0.8rem;">Entreprises:</strong>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem;">
+                            {% for tag in emp_has_pro_tags %}
+                            <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if emp_has_edu_tags %}
+                    <div style="margin-top:0.6rem;">
+                        <strong style="color:#4caf50; font-size:0.8rem;">Écoles:</strong>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem;">
+                            {% for tag in emp_has_edu_tags %}
+                            <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Sidebar -->
