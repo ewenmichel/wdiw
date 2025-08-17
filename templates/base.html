@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Tech Companies Database{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,108 +13,139 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
-            color: #e0e0e0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
             min-height: 100vh;
+            letter-spacing: 0.01em;
         }
 
         .nav {
-            background: rgba(45, 45, 68, 0.9);
-            padding: 1rem 2rem;
-            border-bottom: 1px solid rgba(100, 181, 246, 0.2);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.95);
+            padding: 1.5rem 2rem 1.2rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            backdrop-filter: blur(6px);
         }
 
         .nav h1 {
-            color: #64b5f6;
+            color: #fff;
+            font-weight: 200;
+            letter-spacing: 0.15em;
+            font-size: 2rem;
             display: inline-block;
         }
 
         .nav a {
-            color: #64b5f6;
+            color: #fff;
             text-decoration: none;
             margin-left: 2rem;
             padding: 0.5rem 1rem;
             border-radius: 6px;
             transition: background 0.3s;
+            font-weight: 300;
+            letter-spacing: 0.1em;
         }
 
         .nav a:hover {
-            background: rgba(100, 181, 246, 0.2);
+            background: rgba(255,255,255,0.07);
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 2.5rem 1.5rem;
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 8px 18px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-size: 14px;
+            font-weight: 400;
+            transition: all 0.2s cubic-bezier(.4,0,.2,1);
+            font-size: 15px;
             text-decoration: none;
             display: inline-block;
+            background: #111;
+            color: #fff;
+            border: 1px solid #222;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
-            color: white;
+            background: #fff;
+            color: #000;
+            border: 1px solid #fff;
         }
 
         .btn-secondary {
-            background: rgba(100, 181, 246, 0.2);
-            color: #64b5f6;
-            border: 1px solid rgba(100, 181, 246, 0.3);
+            background: #111;
+            color: #fff;
+            border: 1px solid #333;
         }
 
         .btn-danger {
-            background: rgba(244, 67, 54, 0.2);
-            color: #f44336;
-            border: 1px solid rgba(244, 67, 54, 0.3);
+            background: #1a0000;
+            color: #ff4444;
+            border: 1px solid #ff4444;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+            background: #222;
+            color: #fff;
+            border: 1px solid #fff;
         }
 
         .card {
-            background: rgba(45, 45, 68, 0.8);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(100, 181, 246, 0.2);
-            backdrop-filter: blur(10px);
-            position: relative; /* allow z-index stacking for child popovers */
+            background: linear-gradient(135deg, rgba(18,18,18,0.92) 80%, rgba(30,30,30,0.88) 100%);
+            border-radius: 26px;
+            padding: 1.3rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1.2px solid rgba(255,255,255,0.09);
+            box-shadow: 0 0 32px 0 rgba(255,255,255,0.04), 0 2px 24px 0 rgba(0,0,0,0.13);
+            position: relative;
             z-index: 0;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 26px;
+            pointer-events: none;
+            background: radial-gradient(ellipse at 60% 0%, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0) 80%);
+            z-index: 1;
+        }
+
+        .card * {
+            color: #f3f3f3;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 300;
+            letter-spacing: 0.01em;
+        }
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.2rem;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
-            color: #64b5f6;
-            font-weight: 600;
+            color: #fff;
+            font-weight: 300;
+            letter-spacing: 0.08em;
         }
         .form-group label .op-select {
-            font-weight: 500;
+            font-weight: 300;
             font-size: 12px;
             padding: 2px 6px;
             border-radius: 4px;
             margin-left: 6px;
             vertical-align: middle;
-            background: rgba(100, 181, 246, 0.15);
-            border: 1px solid rgba(100, 181, 246, 0.3);
-            color: #e0e0e0;
+            background: #111;
+            border: 1px solid #333;
+            color: #fff;
         }
         .field-under select,
         .field-under input[type="number"] {
@@ -125,19 +157,19 @@
         .form-group select {
             width: 100%;
             padding: 0.75rem;
-            background: rgba(30, 30, 46, 0.8);
-            border: 2px solid rgba(100, 181, 246, 0.3);
+            background: #111;
+            border: 1.5px solid #222;
             border-radius: 6px;
-            color: #e0e0e0;
-            font-size: 14px;
+            color: #fff;
+            font-size: 15px;
         }
 
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #64b5f6;
-            box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
+            border-color: #fff;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
         }
 
         .grid-2 {
@@ -159,15 +191,27 @@
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
             .grid-2, .grid-3, .grid-4 {
                 grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 1.2rem 0.7rem;
+            }
+            .nav h1 {
+                font-size: 1.2rem;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Background canvas for mysterious stars and crystals -->
+    <canvas id="canvas3d-bg"></canvas>
+
     <nav class="nav">
-        <h1>🚀 Tech Companies</h1>
+        <h1>Crystal Door</h1>
         <a href="/">Toutes les entreprises</a>
         <a href="/companies/new">Ajouter une entreprise</a>
     </nav>
@@ -175,5 +219,206 @@
     <div class="container">
         {% block content %}{% endblock %}
     </div>
+
+    <script>
+    // --- Mysterious floating stars and crystals background ---
+    const canvas = document.getElementById('canvas3d-bg');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
+    canvas.style.zIndex = '0';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.background = 'linear-gradient(135deg, #050505 0%, #000000 100%)';
+
+    // Star and crystal config
+    const STAR_COUNT = 90;
+    const CRYSTAL_COUNT = 4;
+    const stars = [];
+    const crystals = [];
+
+    // Star class
+    class Star {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.z = Math.random() * 0.7 + 0.3;
+            this.radius = Math.random() * 0.7 + 0.3;
+            this.alpha = Math.random() * 0.5 + 0.3;
+            this.twinkle = Math.random() * Math.PI * 2;
+            this.speed = (Math.random() - 0.5) * 0.04;
+        }
+        update() {
+            this.twinkle += this.speed;
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha + Math.sin(this.twinkle) * 0.15;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * (1 + Math.sin(this.twinkle) * 0.2), 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 8 * this.z;
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // Crystal class (hexagonal bipyramid, less pointy, random tilt)
+    class Crystal {
+        constructor(side = 'left') {
+            this.baseX = side === 'left' ? (Math.random() * 80 + 30) : (width - Math.random() * 80 - 30);
+            this.baseY = Math.random() * (height - 200) + 100;
+            this.baseZ = Math.random() * 60 - 30;
+            this.scale = Math.random() * 38 + 38;
+            this.floatOffset = Math.random() * Math.PI * 2;
+            // Random tilt for each axis
+            this.rotX = Math.random() * Math.PI * 2;
+            this.rotY = Math.random() * Math.PI * 2;
+            this.rotZ = Math.random() * Math.PI * 2;
+            this.side = side;
+            this.rotationSpeed = 0.001 + Math.random() * 0.001;
+        }
+        rotatePoint(x, y, z) {
+            // Rotate around X
+            let ty = y * Math.cos(this.rotX) - z * Math.sin(this.rotX);
+            let tz = y * Math.sin(this.rotX) + z * Math.cos(this.rotX);
+            y = ty; z = tz;
+            // Rotate around Y
+            let tx = x * Math.cos(this.rotY) + z * Math.sin(this.rotY);
+            tz = -x * Math.sin(this.rotY) + z * Math.cos(this.rotY);
+            x = tx; z = tz;
+            // Rotate around Z
+            tx = x * Math.cos(this.rotZ) - y * Math.sin(this.rotZ);
+            ty = x * Math.sin(this.rotZ) + y * Math.cos(this.rotZ);
+            x = tx; y = ty;
+            return { x, y, z };
+        }
+        update() {
+            // Animate tilt
+            this.rotY += this.rotationSpeed;
+            this.floatY = Math.sin(Date.now() * 0.0006 + this.floatOffset) * 12;
+        }
+        draw() {
+            // Hexagonal bipyramid (landing page style, less pointy)
+            const s = this.scale;
+            const vertices = [
+                // Top point
+                { x: 0, y: -s * 1.5, z: 0 },
+                // Upper hexagon
+                { x: s * 0.5, y: -s * 0.7, z: 0 },
+                { x: s * 0.25, y: -s * 0.7, z: s * 0.43 },
+                { x: -s * 0.25, y: -s * 0.7, z: s * 0.43 },
+                { x: -s * 0.5, y: -s * 0.7, z: 0 },
+                { x: -s * 0.25, y: -s * 0.7, z: -s * 0.43 },
+                { x: s * 0.25, y: -s * 0.7, z: -s * 0.43 },
+                // Middle hexagon
+                { x: s * 0.6, y: 0, z: 0 },
+                { x: s * 0.3, y: 0, z: s * 0.52 },
+                { x: -s * 0.3, y: 0, z: s * 0.52 },
+                { x: -s * 0.6, y: 0, z: 0 },
+                { x: -s * 0.3, y: 0, z: -s * 0.52 },
+                { x: s * 0.3, y: 0, z: -s * 0.52 },
+                // Bottom point (less pointy)
+                { x: 0, y: s * 1.1, z: 0 }
+            ];
+            // Project and rotate
+            const projected = vertices.map(v => {
+                const r = this.rotatePoint(v.x, v.y + this.floatY, v.z);
+                return {
+                    x: this.baseX + r.x,
+                    y: this.baseY + r.y,
+                };
+            });
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            ctx.lineWidth = 1.2;
+            // Top pyramid edges
+            for (let i = 1; i <= 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(projected[0].x, projected[0].y);
+                ctx.lineTo(projected[i].x, projected[i].y);
+                ctx.stroke();
+            }
+            // Upper hexagon
+            for (let i = 1; i <= 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(projected[i].x, projected[i].y);
+                ctx.lineTo(projected[i === 6 ? 1 : i + 1].x, projected[i === 6 ? 1 : i + 1].y);
+                ctx.stroke();
+            }
+            // Vertical edges to middle
+            for (let i = 1; i <= 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(projected[i].x, projected[i].y);
+                ctx.lineTo(projected[i + 6].x, projected[i + 6].y);
+                ctx.stroke();
+            }
+            // Middle hexagon
+            for (let i = 7; i <= 12; i++) {
+                ctx.beginPath();
+                ctx.moveTo(projected[i].x, projected[i].y);
+                ctx.lineTo(projected[i === 12 ? 7 : i + 1].x, projected[i === 12 ? 7 : i + 1].y);
+                ctx.stroke();
+            }
+            // Bottom pyramid edges
+            for (let i = 7; i <= 12; i++) {
+                ctx.beginPath();
+                ctx.moveTo(projected[13].x, projected[13].y);
+                ctx.lineTo(projected[i].x, projected[i].y);
+                ctx.stroke();
+            }
+            // Subtle glow
+            const center = projected[0];
+            const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, this.scale * 1.5);
+            grad.addColorStop(0, 'rgba(255,255,255,0.08)');
+            grad.addColorStop(1, 'rgba(255,255,255,0.01)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, this.scale * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // Init stars and crystals
+    function initBG() {
+        stars.length = 0;
+        crystals.length = 0;
+        for (let i = 0; i < STAR_COUNT; i++) stars.push(new Star());
+        for (let i = 0; i < CRYSTAL_COUNT; i++) {
+            crystals.push(new Crystal(i % 2 === 0 ? 'left' : 'right'));
+        }
+    }
+
+    function animateBG() {
+        ctx.clearRect(0, 0, width, height);
+        // Draw stars
+        for (const s of stars) {
+            s.update();
+            s.draw();
+        }
+        // Draw crystals
+        for (const c of crystals) {
+            c.update();
+            c.draw();
+        }
+        requestAnimationFrame(animateBG);
+    }
+
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        initBG();
+    });
+
+    initBG();
+    animateBG();
+    </script>
 </body>
 </html>
