@@ -19,14 +19,23 @@ except Exception:
 if load_dotenv:
     load_dotenv()
 
-# 2) Auto-load Neo4j Desktop/Cloud credentials file if present in project root
-project_root = Path(__file__).resolve().parents[1]
+# 2) Auto-load Neo4j Desktop/Cloud credentials file if present in repo or app root
 if load_dotenv:
     try:
-        for p in project_root.glob("Neo4j-*-Created-*.txt"):
-            # Load without overriding any already-set env vars
-            load_dotenv(dotenv_path=str(p), override=False)
-            break
+        here = Path(__file__).resolve()
+        parents = list(here.parents)
+        # Typical candidates: .../wdiw and repo root .../crystaldoor
+        candidate_dirs = []
+        if len(parents) > 2:
+            candidate_dirs.append(parents[2])  # wdiw
+        if len(parents) > 3:
+            candidate_dirs.append(parents[3])  # repo root
+        for base in candidate_dirs:
+            for p in base.glob("Neo4j-*-Created-*.txt"):
+                load_dotenv(dotenv_path=str(p), override=False)
+                raise StopIteration
+    except StopIteration:
+        pass
     except Exception as e:
         print(f"[neo4j] Could not auto-load credentials file: {e}")
 

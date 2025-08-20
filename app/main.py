@@ -6,31 +6,40 @@ from typing import Optional
 import json
 import traceback
 
-# Fixed imports
-import models
-import database
-import neo4j_crud as crud
+# Fixed imports for new structure
+import pathlib
+import os
+import sys
+
+# Ensure project root (directory containing `app/`) is on sys.path
+_HERE = pathlib.Path(__file__).resolve()
+_PROJECT_ROOT = _HERE.parents[1]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+import app.schemas as models
+from app.db import neo4j as database
+from app.services import companies as crud
 
 app = FastAPI(title="Tech Companies Database", version="1.0.0")
 
 # Initialize Neo4j constraints
 database.init_neo4j_constraints()
 
-# Templates
-templates = Jinja2Templates(directory="templates")
+# Templates (absolute path so it works from any CWD)
+TEMPLATES_DIR = str(pathlib.Path(__file__).resolve().parents[1] / "templates")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # Sample data insertion with error handling
 def insert_sample_data():
     try:
-        db = next(database.get_db())
-        
-        # Check if data already exists
-        if db.query(database.Company).first():
+        # Check if data already exists (via Neo4j API)
+        if crud.get_companies(limit=1):
             print("Sample data already exists, skipping...")
             return
-        
+
         print("Inserting sample data...")
-        
+
         # Kili Technology
         kili_data = models.CompanyCreate(
             name="Kili Technology",
@@ -69,8 +78,8 @@ def insert_sample_data():
             investors=["Serena Capital", "Headline", "Balderton Capital", "Olivier Pomel (Datadog)", "Nicolas Dessaigne (Algolia)"]
         )
         
-        kili_company = crud.create_company(db, kili_data)
-        print(f"Created Kili Technology with ID: {kili_company.id}")
+        kili_company = crud.create_company(kili_data)
+        print(f"Created Kili Technology with ID: {kili_company['id']}")
         
         # DeepIP
         deepip_data = models.CompanyCreate(
@@ -114,8 +123,8 @@ def insert_sample_data():
             ]
         )
         
-        deepip_company = crud.create_company(db, deepip_data)
-        print(f"Created DeepIP with ID: {deepip_company.id}")
+        deepip_company = crud.create_company(deepip_data)
+        print(f"Created DeepIP with ID: {deepip_company['id']}")
         
     except Exception as e:
         print(f"Error inserting sample data: {e}")

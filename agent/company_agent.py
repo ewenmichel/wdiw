@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import re
 
 
-# Ensure project root is on sys.path when running this file directly
+# Ensure project root (directory containing `app/`) is on sys.path when running directly
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 if PROJECT_ROOT not in sys.path:
@@ -19,7 +19,7 @@ import httpx  # type: ignore
 from bs4 import BeautifulSoup  # type: ignore
 import anthropic  # type: ignore
 
-from wdiw.database import get_neo4j_session  # type: ignore
+from app.db.neo4j import get_neo4j_session  # type: ignore
 
 
 READINESS_VALUE = "AI-GENERATED"

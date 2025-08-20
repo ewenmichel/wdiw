@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrystalDoor - Coming Soon</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300&display=swap');
+        @font-face {
+            font-family: 'realifefont';
+            src: url('realife_font.ttf') format('truetype');
+            font-display: swap;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Inter', sans-serif;
+            cursor: none;
+        }
+        
+        #canvas3d {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #050505 0%, #000000 100%);
+        }
+        
+        .title {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: min(3.5rem, 8vw);
+            font-weight: 200;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 10;
+            text-align: center;
+            opacity: 0.9;
+            animation: fadeIn 2s ease-out;
+            white-space: nowrap;
+        }
+        
+        .subtitle {
+            position: absolute;
+            top: calc(50% + min(2.5rem, 6vw));
+            left: 50%;
+            transform: translate(-50%, 0);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: min(0.9rem, 3vw);
+            font-weight: 300;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 10;
+            text-align: center;
+            animation: fadeIn 2.5s ease-out;
+            white-space: nowrap;
+        }
+        
+        .cursor-dot {
+            position: fixed;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -40%); 
+            }
+            100% { 
+                opacity: 0.9; 
+                transform: translate(-50%, -50%); 
+            }
+        }
+        
+        .subtitle {
+            animation-name: fadeInSubtitle;
+        }
+        
+        @keyframes fadeInSubtitle {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -20px); 
+            }
+            100% { 
+                opacity: 0.4; 
+                transform: translate(-50%, 0); 
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @media (max-width: 768px) {
+            .title { 
+                font-size: min(2.5rem, 10vw);
+                letter-spacing: 0.2em;
+            }
+            .subtitle {
+                font-size: min(0.8rem, 4vw);
+                letter-spacing: 0.3em;
+            }
+            .cursor-dot { 
+                display: none; 
+            }
+            body { 
+                cursor: auto; 
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .title { 
+                font-size: min(2rem, 12vw);
+                letter-spacing: 0.15em;
+            }
+            .subtitle {
+                font-size: min(0.7rem, 4.5vw);
+                letter-spacing: 0.25em;
+            }
+        }
+
+        /* Manifesto trigger */
+        .manifesto-trigger {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.8s ease 0.8s;
+        }
+        .manifesto-trigger.visible { opacity: 1; }
+        .manifesto-trigger .arrow {
+            color: rgba(255,255,255,0.5);
+            font-size: 14px;
+            transform: translateY(6px);
+            animation: arrowFloat 2s ease-in-out infinite;
+            pointer-events: none;
+            user-select: none;
+        }
+        @keyframes arrowFloat {
+            0%, 100% { transform: translateY(6px); opacity: 0.6; }
+            50% { transform: translateY(0); opacity: 1; }
+        }
+        .manifesto-button {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: 'realifefont', 'Inter', sans-serif;
+            font-size: 24px;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+        }
+        .manifesto-button:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -2px;
+            height: 1px;
+            background: rgba(255,255,255,0.25);
+            transform: scaleX(0);
+            transform-origin: center;
+            transition: transform 250ms ease;
+        }
+        .manifesto-button:hover:after { transform: scaleX(1); }
+
+        /* Manifesto overlay */
+        .manifesto-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 560px;
+            max-width: min(92vw, 720px);
+            height: 70vh;
+            max-height: 78vh;
+            background: rgba(6,6,6,0.92);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            box-shadow: 0 10px 60px rgba(0,0,0,0.6), 0 0 40px rgba(255,255,255,0.05) inset;
+            z-index: 21;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, 100%);
+            backdrop-filter: blur(6px);
+        }
+        .manifesto-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .manifesto-header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0));
+            padding: 16px 18px 10px 18px;
+            z-index: 2;
+        }
+        .manifesto-title {
+            margin: 0;
+            color: #fff;
+            font-family: 'realifefont', 'Inter', sans-serif;
+            font-size: 36px;
+            letter-spacing: 0.06em;
+            display: inline-block;
+        }
+        .manifesto-overlay.settled .manifesto-title {
+            font-size: 44px;
+        }
+        .manifesto-crystals {
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 120px;
+            pointer-events: none;
+        }
+        .manifesto-crystals svg {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            opacity: 0.85;
+            animation: float 6s ease-in-out infinite;
+            filter: drop-shadow(0 2px 6px rgba(255,255,255,0.1));
+        }
+        .manifesto-content {
+            position: absolute;
+            top: 72px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            overflow: auto;
+            padding: 10px 18px 18px 18px;
+            color: #e8e8e8;
+            line-height: 1.8;
+            font-weight: 300;
+        }
+        .manifesto-content p { margin-bottom: 1rem; }
+        .manifesto-close { display: none; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas3d"></canvas>
+    
+    <h1 class="title">CrystalDoor</h1>
+    <p class="subtitle">Opening soon</p>
+    
+    <div class="cursor-dot"></div>
+
+    <!-- Manifesto trigger -->
+    <div id="manifestoTrigger" class="manifesto-trigger">
+        <div class="arrow">▲</div>
+        <button id="manifestoButton" class="manifesto-button">Manifesto.</button>
+    </div>
+
+    <!-- Manifesto overlay -->
+    <div id="manifestoOverlay" class="manifesto-overlay" aria-hidden="true">
+        <div class="manifesto-header">
+            <h2 class="manifesto-title">Manifesto.</h2>
+            <div id="manifestoCrystals" class="manifesto-crystals"></div>
+        </div>
+        <div class="manifesto-content" id="manifestoContent">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non malesuada enim. Pellentesque ut lacus at metus ullamcorper fermentum. Integer gravida semper nisl vel facilisis. Vivamus mollis, dui eget tristique interdum, ex tortor venenatis neque, vel pharetra tellus erat id massa.</p>
+            <p>Aliquam erat volutpat. Maecenas mattis, dolor ut bibendum gravida, mi dolor convallis eros, sit amet pretium eros sem et nunc. Proin porta suscipit orci, nec pulvinar odio posuere nec. Etiam lacinia tortor ac dui egestas, eu suscipit dui aliquam.</p>
+            <p>In condimentum, justo id gravida bibendum, nibh arcu dictum mauris, vitae faucibus magna lectus eu massa. Sed feugiat, nisl eget ultrices dictum, neque risus tempor nulla, eget consequat lorem turpis in sapien. Cras nec urna id risus fermentum iaculis.</p>
+            <p>Suspendisse potenti. Vivamus ultrices, lorem id gravida tempor, mi odio vehicula massa, sed hendrerit velit justo vel ligula. Nulla facilisi. Morbi faucibus placerat justo, sit amet porta lorem cursus at.</p>
+            <p>Morbi tristique nisl in dui eleifend, non venenatis felis mollis. Vivamus tristique orci et mi fermentum aliquet. Integer sit amet magna ac velit consectetur imperdiet. Integer at tortor sed massa tristique faucibus sit amet non quam.</p>
+            <p>Quisque dapibus finibus urna, ac feugiat risus ullamcorper id. Aenean sed risus sed leo sodales convallis. Etiam vitae dictum nibh. Integer porttitor pulvinar neque, non dictum augue viverra ut.</p>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas3d');
+        const ctx = canvas.getContext('2d');
+        
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        
+        // Responsive configuration that adapts to screen size
+        function getResponsiveConfig() {
+            const isMobile = width < 768;
+            const isSmallMobile = width < 480;
+            const screenArea = width * height;
+            const baseArea = 1920 * 1080; // Reference screen size
+            const scaleFactor = Math.sqrt(screenArea / baseArea);
+            
+            return {
+                particleCount: Math.floor(Math.max(100, Math.min(500, screenArea / 5000))),
+                connectionDistance: isMobile ? 80 : 100,
+                mouseRadius: isMobile ? 200 : 250,
+                planeRotationX: Math.PI * 0.15,
+                planeRotationY: Math.PI * 0.25,
+                planeDepthVariation: isMobile ? 0.03 : 0.05,
+                perspective: isMobile ? 1500 : 2200,
+                centerZ: 0,
+                crystalCount: isSmallMobile ? 3 : isMobile ? 5 : 8,
+                crystalBaseSize: Math.max(40, 80 * scaleFactor),
+                textSafeZone: Math.max(120, 200 * scaleFactor), // Safe zone around text
+                gridSpacing: scaleFactor,
+                // 3D Plane size controls
+                planeWidth: 1.5,  // Multiplier for plane width (default: 1.5 * screen width)
+                planeHeight: 1.5  // Multiplier for plane height (default: 1.5 * screen height)
+            };
+        }
+        
+        let config = getResponsiveConfig();
+
+        // Manifesto state
+        const manifestoState = { active: false, settled: false, progress: 0, rect: null };
+        
+        // Mouse
+        let mouse = {
+            x: width / 2,
+            y: height / 2,
+            vx: 0,
+            vy: 0,
+            z: 0
+        };
+        
+        // Custom cursor
+        const cursorDot = document.querySelector('.cursor-dot');
+        
+        // Function to check if position conflicts with text area
+        function isInTextSafeZone(x, y) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const safeZone = config.textSafeZone;
+            
+            return Math.abs(x - centerX) < safeZone && Math.abs(y - centerY) < safeZone;
+        }
+        
+        // Generate responsive crystal positions
+        function generateCrystalPositions() {
+            const positions = [];
+            const attempts = config.crystalCount * 10; // Max attempts to find valid positions
+            let validPositions = 0;
+            
+            for (let i = 0; i < attempts && validPositions < config.crystalCount; i++) {
+                // Create positions that avoid the center text area
+                const angle = (validPositions / config.crystalCount) * Math.PI * 2 + Math.random() * 0.5;
+                const minDistance = config.textSafeZone * 1.5;
+                const maxDistance = Math.min(width, height) * 0.8;
+                const distance = minDistance + Math.random() * (maxDistance - minDistance);
+                
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                
+                // Additional randomization while avoiding text
+                const offsetX = (Math.random() - 0.5) * width * 0.3;
+                const offsetY = (Math.random() - 0.5) * height * 0.3;
+                
+                const finalX = x + offsetX;
+                const finalY = y + offsetY;
+                
+                // Check if position is valid (not in text area and not too close to other crystals)
+                if (!isInTextSafeZone(finalX, finalY)) {
+                    let tooClose = false;
+                    for (const pos of positions) {
+                        const dx = finalX - pos.x;
+                        const dy = finalY - pos.y;
+                        if (Math.sqrt(dx * dx + dy * dy) < config.crystalBaseSize * 3) {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!tooClose) {
+                        positions.push({ x: finalX, y: finalY });
+                        validPositions++;
+                    }
+                }
+            }
+            
+            return positions;
+        }
+        
+        // Crystal Door class
+        class CrystalDoor {
+            constructor(offsetX, offsetY) {
+                this.baseX = offsetX;
+                this.baseY = offsetY;
+                this.baseZ = 0;
+                this.rotation = 0;
+                this.floatOffset = Math.random() * Math.PI * 2;
+                this.baseScale = config.crystalBaseSize * (0.8 + Math.random() * 0.4);
+                this.scale = this.baseScale; // Will be updated based on depth
+            }
+            
+            rotatePoint(x, y, z) {
+                let tempY = y * Math.cos(config.planeRotationX) - z * Math.sin(config.planeRotationX);
+                let tempZ = y * Math.sin(config.planeRotationX) + z * Math.cos(config.planeRotationX);
+                y = tempY;
+                z = tempZ;
+                
+                let tempX = x * Math.cos(config.planeRotationY) + z * Math.sin(config.planeRotationY);
+                tempZ = -x * Math.sin(config.planeRotationY) + z * Math.cos(config.planeRotationY);
+                x = tempX;
+                z = tempZ;
+                
+                return { x, y, z };
+            }
+            
+            project(x, y, z) {
+                const rotated = this.rotatePoint(x, y, z);
+                const scale = config.perspective / (config.perspective + rotated.z - config.centerZ);
+                return {
+                    x: rotated.x * scale + width / 2,
+                    y: rotated.y * scale + height / 2,
+                    scale: scale
+                };
+            }
+            
+            update() {
+                this.rotation += 0.001;
+                
+                // Calculate depth-based scale using the rotated position
+                const rotated = this.rotatePoint(this.baseX, this.baseY, this.baseZ);
+                
+                // The further back (higher Z value after rotation), the smaller the crystal
+                // Use perspective calculation similar to particle projection
+                const depthScale = config.perspective / (config.perspective + rotated.z - config.centerZ);
+                
+                // Apply depth scaling to the base scale, with some minimum size to keep crystals visible
+                this.scale = this.baseScale * 6 * Math.max(0.05, (0.2 * (this.baseX + width / 2) / (width)));
+
+                // Repel away from manifesto overlay in screen space
+                if (manifestoState.active && manifestoState.rect) {
+                    const centerProj = this.project(this.baseX, this.baseY, this.baseZ);
+                    const r = manifestoState.rect;
+                    if (centerProj.x > r.x && centerProj.x < r.x + r.width && centerProj.y > r.y && centerProj.y < r.y + r.height) {
+                        const cx = r.x + r.width / 2;
+                        const cy = r.y + r.height / 2;
+                        const dx = centerProj.x - cx;
+                        const dy = centerProj.y - cy;
+                        const dist = Math.max(1, Math.hypot(dx, dy));
+                        const force = 20 * (1 - Math.min(1, dist / Math.max(r.width, r.height)));
+                        this.baseX += (dx / dist) * force;
+                        this.baseY += (dy / dist) * force;
+                    }
+                }
+            }
+            
+            draw() {
+                const time = Date.now() * 0.0005;
+                const floatY = Math.sin(time + this.floatOffset) * 5;
+                
+                // Crystal vertices in local space (hexagonal bipyramid)
+                const vertices = [
+                    // Top pyramid point
+                    { x: 0, y: -this.scale * 1.5, z: 0 },
+                    
+                    // Upper hexagon
+                    { x: this.scale * 0.5, y: -this.scale * 0.7, z: 0 },
+                    { x: this.scale * 0.25, y: -this.scale * 0.7, z: this.scale * 0.43 },
+                    { x: -this.scale * 0.25, y: -this.scale * 0.7, z: this.scale * 0.43 },
+                    { x: -this.scale * 0.5, y: -this.scale * 0.7, z: 0 },
+                    { x: -this.scale * 0.25, y: -this.scale * 0.7, z: -this.scale * 0.43 },
+                    { x: this.scale * 0.25, y: -this.scale * 0.7, z: -this.scale * 0.43 },
+                    
+                    // Middle section
+                    { x: this.scale * 0.6, y: 0, z: 0 },
+                    { x: this.scale * 0.3, y: 0, z: this.scale * 0.52 },
+                    { x: -this.scale * 0.3, y: 0, z: this.scale * 0.52 },
+                    { x: -this.scale * 0.6, y: 0, z: 0 },
+                    { x: -this.scale * 0.3, y: 0, z: -this.scale * 0.52 },
+                    { x: this.scale * 0.3, y: 0, z: -this.scale * 0.52 },
+                    
+                    // Bottom pyramid point
+                    { x: 0, y: this.scale * 1.5, z: 0 }
+                ];
+                
+                // Project all vertices
+                const projected = vertices.map(v => {
+                    const rotY = Math.cos(this.rotation) * v.x - Math.sin(this.rotation) * v.z;
+                    const rotZ = Math.sin(this.rotation) * v.x + Math.cos(this.rotation) * v.z;
+                    return this.project(
+                        this.baseX + rotY,
+                        this.baseY + v.y + floatY,
+                        this.baseZ + rotZ
+                    );
+                });
+                
+                // Draw crystal edges with depth-based opacity
+                const rotated = this.rotatePoint(this.baseX, this.baseY, this.baseZ);
+                const depthScale = config.perspective / (config.perspective + rotated.z - config.centerZ);
+                const depthOpacity = Math.max(0.2, Math.min(1.0, depthScale));
+                
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 * depthOpacity})`;
+                ctx.lineWidth = (width < 768 ? 1 : 1.5) * depthScale;
+                
+                // Top pyramid edges
+                for (let i = 1; i <= 6; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(projected[0].x, projected[0].y);
+                    ctx.lineTo(projected[i].x, projected[i].y);
+                    ctx.stroke();
+                }
+                
+                // Upper hexagon
+                for (let i = 1; i <= 6; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(projected[i].x, projected[i].y);
+                    ctx.lineTo(projected[i === 6 ? 1 : i + 1].x, projected[i === 6 ? 1 : i + 1].y);
+                    ctx.stroke();
+                }
+                
+                // Vertical edges to middle
+                for (let i = 1; i <= 6; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(projected[i].x, projected[i].y);
+                    ctx.lineTo(projected[i + 6].x, projected[i + 6].y);
+                    ctx.stroke();
+                }
+                
+                // Middle hexagon
+                for (let i = 7; i <= 12; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(projected[i].x, projected[i].y);
+                    ctx.lineTo(projected[i === 12 ? 7 : i + 1].x, projected[i === 12 ? 7 : i + 1].y);
+                    ctx.stroke();
+                }
+                
+                // Bottom pyramid edges
+                for (let i = 7; i <= 12; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(projected[13].x, projected[13].y);
+                    ctx.lineTo(projected[i].x, projected[i].y);
+                    ctx.stroke();
+                }
+                
+                // Add subtle glow to crystal with depth-based intensity
+                const centerProj = this.project(this.baseX, this.baseY + floatY, this.baseZ);
+                const glowIntensity = Math.max(0.1, depthScale);
+                const gradient = ctx.createRadialGradient(
+                    centerProj.x, centerProj.y, 0,
+                    centerProj.x, centerProj.y, this.scale * centerProj.scale * 2
+                );
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${0.05 * glowIntensity})`);
+                gradient.addColorStop(0.5, `rgba(255, 255, 255, ${0.02 * glowIntensity})`);
+                gradient.addColorStop(1, 'transparent');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(centerProj.x, centerProj.y, this.scale * centerProj.scale * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            isNear(x, y, z, radius = null) {
+                const checkRadius = radius || this.scale * 1.5;
+                const dx = x - this.baseX;
+                const dy = y - this.baseY;
+                const dz = z - this.baseZ;
+                return Math.sqrt(dx * dx + dy * dy + dz * dz) < checkRadius;
+            }
+        }
+        
+        // Initialize crystals
+        let crystals = [];
+        
+        function initializeCrystals() {
+            crystals = [];
+            const positions = generateCrystalPositions();
+            positions.forEach(pos => {
+                crystals.push(new CrystalDoor(pos.x, pos.y));
+            });
+        }
+        
+        class Particle3D {
+            constructor(index, totalCount) {
+                const gridSize = Math.ceil(Math.sqrt(totalCount));
+                const gridX = (index % gridSize) / gridSize - 0.5;
+                const gridY = Math.floor(index / gridSize) / gridSize - 0.5;
+                
+                // Use config values to control plane size
+                this.baseX = gridX * width * config.planeWidth;
+                this.baseY = gridY * height * config.planeHeight;
+                this.baseZ = (Math.random() - 0.5) * config.planeDepthVariation * 500;
+                
+                const rotatedPos = this.rotatePoint(this.baseX, this.baseY, this.baseZ);
+                this.baseX = rotatedPos.x;
+                this.baseY = rotatedPos.y;
+                this.baseZ = rotatedPos.z;
+                
+                this.x = this.baseX;
+                this.y = this.baseY;
+                this.z = this.baseZ;
+                
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.vz = (Math.random() - 0.5) * 0.1;
+                
+                this.radius = Math.random() * 1.5 + 0.5;
+                this.opacity = Math.random() * 0.5 + 0.5;
+            }
+            
+            rotatePoint(x, y, z) {
+                let tempY = y * Math.cos(config.planeRotationX) - z * Math.sin(config.planeRotationX);
+                let tempZ = y * Math.sin(config.planeRotationX) + z * Math.cos(config.planeRotationX);
+                y = tempY;
+                z = tempZ;
+                
+                let tempX = x * Math.cos(config.planeRotationY) + z * Math.sin(config.planeRotationY);
+                tempZ = -x * Math.sin(config.planeRotationY) + z * Math.cos(config.planeRotationY);
+                x = tempX;
+                z = tempZ;
+                
+                return { x, y, z };
+            }
+            
+            project() {
+                const scale = config.perspective / (config.perspective + this.z - config.centerZ);
+                return {
+                    x: this.x * scale + width / 2,
+                    y: this.y * scale + height / 2,
+                    scale: scale,
+                    opacity: scale * this.opacity
+                };
+            }
+            
+            update() {
+                this.baseX += this.vx;
+                this.baseY += this.vy;
+                this.baseZ += this.vz;
+                
+                const bounds = Math.max(width, height) * 0.3;
+                if (Math.abs(this.baseX) > bounds) this.vx *= -1;
+                if (Math.abs(this.baseY) > bounds) this.vy *= -1;
+                if (Math.abs(this.baseZ) > 20) this.vz *= -1;
+                
+                // Crystal repulsion
+                let crystalForceX = 0;
+                let crystalForceY = 0;
+                let crystalForceZ = 0;
+                
+                crystals.forEach(crystal => {
+                    const repulsionRadius = crystal.scale * 2;
+                    if (crystal.isNear(this.baseX, this.baseY, this.baseZ, repulsionRadius)) {
+                        const dx = this.baseX - crystal.baseX;
+                        const dy = this.baseY - crystal.baseY;
+                        const dz = this.baseZ - crystal.baseZ;
+                        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        
+                        if (dist > 0 && dist < repulsionRadius) {
+                            const force = (1 - dist / repulsionRadius) * 10;
+                            crystalForceX += (dx / dist) * force;
+                            crystalForceY += (dy / dist) * force;
+                            crystalForceZ += (dz / dist) * force;
+                        }
+                    }
+                });
+                
+                // Mouse interaction
+                const projected = this.project();
+                const dx = mouse.x - projected.x;
+                const dy = mouse.y - projected.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < config.mouseRadius) {
+                    const force = (1 - distance / config.mouseRadius);
+                    const force3D = force * 30;
+                    
+                    const angle = Math.atan2(dy, dx);
+                    const attractionX = Math.cos(angle) * force3D;
+                    const attractionY = Math.sin(angle) * force3D;
+                    
+                    this.x = this.baseX + attractionX / projected.scale + crystalForceX;
+                    this.y = this.baseY + attractionY / projected.scale + crystalForceY;
+                    this.z = this.baseZ + Math.sin(Date.now() * 0.001 + this.baseX) * force * 10 + crystalForceZ;
+                } else {
+                    this.x += (this.baseX - this.x) * 0.1 + crystalForceX * 0.1;
+                    this.y += (this.baseY - this.y) * 0.1 + crystalForceY * 0.1;
+                    this.z += (this.baseZ - this.z) * 0.1 + crystalForceZ * 0.1;
+                }
+
+                // Manifesto overlay repulsion in screen space
+                if (manifestoState.active && manifestoState.rect) {
+                    const p = this.project();
+                    const r = manifestoState.rect;
+                    if (p.x > r.x && p.x < r.x + r.width && p.y > r.y && p.y < r.y + r.height) {
+                        const cx = r.x + r.width / 2;
+                        const cy = r.y + r.height / 2;
+                        const dx2 = p.x - cx;
+                        const dy2 = p.y - cy;
+                        const d = Math.max(1, Math.hypot(dx2, dy2));
+                        const repulse = 40 * (1 - Math.min(1, d / Math.max(r.width, r.height)));
+                        this.x += (dx2 / d) * repulse / (p.scale || 1);
+                        this.y += (dy2 / d) * repulse / (p.scale || 1);
+                    }
+                }
+            }
+            
+            draw() {
+                const p = this.project();
+                
+                if (p.scale <= 0) return;
+                
+                ctx.save();
+                
+                const size = this.radius * p.scale;
+                
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${p.opacity * 0.8})`);
+                gradient.addColorStop(0.5, `rgba(255, 255, 255, ${p.opacity * 0.8})`);
+                gradient.addColorStop(1, 'transparent');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.9})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        let particles = [];
+        
+        function initializeParticles() {
+            particles = [];
+            for (let i = 0; i < config.particleCount; i++) {
+                particles.push(new Particle3D(i, config.particleCount));
+            }
+        }
+        
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                const p1 = particles[i];
+                const proj1 = p1.project();
+                
+                if (proj1.scale <= 0) continue;
+                
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const proj2 = p2.project();
+                    
+                    if (proj2.scale <= 0) continue;
+                    
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dz = p1.z - p2.z;
+                    const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    
+                    if (distance3D < config.connectionDistance) {
+                        const opacity = (1 - distance3D / config.connectionDistance) * 0.2;
+                        
+                        const screenDist1 = Math.sqrt(
+                            Math.pow(proj1.x - mouse.x, 2) + 
+                            Math.pow(proj1.y - mouse.y, 2)
+                        );
+                        const screenDist2 = Math.sqrt(
+                            Math.pow(proj2.x - mouse.x, 2) + 
+                            Math.pow(proj2.y - mouse.y, 2)
+                        );
+                        const avgMouseDist = (screenDist1 + screenDist2) / 2;
+                        
+                        const lineWidth = width < 768 ? 2 : 4.5;
+                        
+                        if (avgMouseDist < config.mouseRadius) {
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 2})`;
+                            ctx.lineWidth = lineWidth;
+                        } else {
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                            ctx.lineWidth = lineWidth;
+                        }
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(proj1.x, proj1.y);
+                        ctx.lineTo(proj2.x, proj2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        
+        function initializeScene() {
+            config = getResponsiveConfig();
+            initializeCrystals();
+            initializeParticles();
+        }
+        
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Update everything
+            crystals.forEach(crystal => crystal.update());
+            particles.forEach(particle => particle.update());
+            
+            // Sort all 3D objects by depth
+            const allObjects = [
+                ...particles.map(p => ({ type: 'particle', obj: p, z: p.z })),
+                ...crystals.map(c => ({ type: 'crystal', obj: c, z: c.baseZ }))
+            ].sort((a, b) => b.z - a.z);
+            
+            // Draw connections first (behind everything)
+            drawConnections();
+            
+            // Draw sorted objects
+            allObjects.forEach(item => {
+                item.obj.draw();
+            });
+            
+            mouse.vx *= 0.95;
+            mouse.vy *= 0.95;
+            
+            // Update overlay rect each frame if active
+            if (manifestoState.active) {
+                const overlayEl = document.getElementById('manifestoOverlay');
+                const bb = overlayEl.getBoundingClientRect();
+                manifestoState.rect = { x: bb.left, y: bb.top, width: bb.width, height: bb.height };
+            } else {
+                manifestoState.rect = null;
+            }
+
+            requestAnimationFrame(animate);
+        }
+        
+        let lastMouse = { x: width / 2, y: height / 2 };
+        
+        document.addEventListener('mousemove', (e) => {
+            lastMouse.x = mouse.x;
+            lastMouse.y = mouse.y;
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.vx = mouse.x - lastMouse.x;
+            mouse.vy = mouse.y - lastMouse.y;
+            
+            if (cursorDot) {
+                cursorDot.style.left = e.clientX + 'px';
+                cursorDot.style.top = e.clientY + 'px';
+            }
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            lastMouse.x = mouse.x;
+            lastMouse.y = mouse.y;
+            mouse.x = touch.clientX;
+            mouse.y = touch.clientY;
+            mouse.vx = mouse.x - lastMouse.x;
+            mouse.vy = mouse.y - lastMouse.y;
+        });
+        
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                mouse.x = width / 2;
+                mouse.y = height / 2;
+                initializeScene();
+                if (manifestoState.active) {
+                    const overlayEl = document.getElementById('manifestoOverlay');
+                    const bb = overlayEl.getBoundingClientRect();
+                    manifestoState.rect = { x: bb.left, y: bb.top, width: bb.width, height: bb.height };
+                }
+            }, 100);
+        });
+        
+        // Manifesto animation logic
+        const manifestoTrigger = document.getElementById('manifestoTrigger');
+        const manifestoButton = document.getElementById('manifestoButton');
+        const manifestoOverlay = document.getElementById('manifestoOverlay');
+        const manifestoCrystals = document.getElementById('manifestoCrystals');
+
+        // Reveal trigger after initial animations
+        window.addEventListener('load', () => {
+            setTimeout(() => manifestoTrigger.classList.add('visible'), 1400);
+        });
+
+        function cubicBezierPoint(t, p0, p1, p2, p3) {
+            const u = 1 - t;
+            const tt = t * t;
+            const uu = u * u;
+            const uuu = uu * u;
+            const ttt = tt * t;
+            return {
+                x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+                y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y
+            };
+        }
+
+        function openManifesto() {
+            window.location.href = 'manifesto.html';
+        }
+
+        function animateManifestoIn() {}
+
+        function loadManifestoCrystals() {
+            const available = [1,2,3,5,8,9,10,15,17,18,19];
+            const count = Math.min(6, available.length);
+            const chosen = [];
+            while (chosen.length < count) {
+                const n = available[Math.floor(Math.random() * available.length)];
+                if (!chosen.includes(n)) chosen.push(n);
+            }
+            manifestoCrystals.innerHTML = '';
+            chosen.forEach((num, idx) => {
+                fetch(`crystals/svgs/crystal-${num}.svg`).then(r => r.ok ? r.text() : Promise.reject()).then(svg => {
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = svg;
+                    const el = wrapper.querySelector('svg');
+                    if (!el) return;
+                    const angle = (idx / count) * Math.PI * 2 + Math.random() * 0.6;
+                    const radius = 70 + Math.random() * 40;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * 20 + 10;
+                    el.style.left = `${Math.max(10, 40 + x)}px`;
+                    el.style.top = `${Math.max(0, 30 + y)}px`;
+                    el.style.animationDelay = `${Math.random() * 2}s`;
+                    el.querySelectorAll('*').forEach(n => {
+                        if (n.getAttribute && n.getAttribute('stroke')) n.setAttribute('stroke', 'white');
+                        if (n.getAttribute && (n.getAttribute('fill') === 'black' || n.getAttribute('fill') === '#000')) n.setAttribute('fill', 'none');
+                    });
+                    manifestoCrystals.appendChild(el);
+                }).catch(() => {});
+            });
+        }
+
+        manifestoButton.addEventListener('click', openManifesto);
+
+        // Initialize everything
+        initializeScene();
+        animate();
+    </script>
+</body>
+</html>
