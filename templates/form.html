@@ -41,8 +41,8 @@
                 <label>Secteur</label>
                 <div class="tag-container" data-category="secteur">
                     <div class="tag-display" id="secteur-tags">
-                        {% if company and company.get_secteur_tags() %}
-                            {% for tag in company.get_secteur_tags() %}
+                        {% if company and company.secteur_tags %}
+                            {% for tag in company.secteur_tags %}
                             <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
                                 {{ tag.name }}
                                 <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
@@ -60,8 +60,8 @@
                 <label>Core Business</label>
                 <div class="tag-container" data-category="core_business">
                     <div class="tag-display" id="core_business-tags">
-                        {% if company and company.get_core_business_tags() %}
-                            {% for tag in company.get_core_business_tags() %}
+                        {% if company and company.core_business_tags %}
+                            {% for tag in company.core_business_tags %}
                             <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
                                 {{ tag.name }}
                                 <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
@@ -152,18 +152,18 @@
                             <label>Background</label>
                             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" class="background-checkbox" data-type="education" {% if founder.background_type == 'education' or (founder.education_institution or founder.get_education_tags) %}checked{% endif %} onchange="toggleBackgroundFields(this)">
+                                    <input type="checkbox" class="background-checkbox" data-type="education" {% if founder.background_type == 'education' or (founder.education_institution or founder.education_tags) %}checked{% endif %} onchange="toggleBackgroundFields(this)">
                                     Éducation
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" class="background-checkbox" data-type="professional" {% if founder.background_type == 'professional' or (founder.professional_company or founder.get_professional_tags) %}checked{% endif %} onchange="toggleBackgroundFields(this)">
+                                    <input type="checkbox" class="background-checkbox" data-type="professional" {% if founder.background_type == 'professional' or (founder.professional_company or founder.professional_tags) %}checked{% endif %} onchange="toggleBackgroundFields(this)">
                                     Professionnel
                                 </label>
                             </div>
                         </div>
                         
                         <!-- Education Background -->
-                        <div class="education-fields" style="display: {% if founder.background_type == 'education' or (founder.education_institution or founder.get_education_tags) %}block{% else %}none{% endif %};">
+                        <div class="education-fields" style="display: {% if founder.background_type == 'education' or (founder.education_institution or founder.education_tags) %}block{% else %}none{% endif %};">
                             <h4 style="color: #64b5f6;">Éducation</h4>
                             <div class="grid-2">
                                 <div class="form-group">
@@ -181,8 +181,8 @@
                                 <label>Écoles/Institutions</label>
                                 <div class="tag-container" data-category="education" data-founder-id="{{ loop.index0 }}">
                                     <div class="tag-display" id="education-tags-{{ loop.index0 }}">
-                                        {% if founder.get_education_tags %}
-                                            {% for tag in founder.get_education_tags() %}
+                                        {% if founder.education_tags %}
+                                            {% for tag in founder.education_tags %}
                                             <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
                                                 {{ tag.name }}
                                                 <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
@@ -197,7 +197,7 @@
                         </div>
                         
                         <!-- Professional Background -->
-                        <div class="professional-fields" style="display: {% if founder.background_type == 'professional' or (founder.professional_company or founder.get_professional_tags) %}block{% else %}none{% endif %};">
+                        <div class="professional-fields" style="display: {% if founder.background_type == 'professional' or (founder.professional_company or founder.professional_tags) %}block{% else %}none{% endif %};">
                             <h4 style="color: #64b5f6;">Expérience Professionnelle</h4>
                             <div class="grid-2">
                                 <div class="form-group">
@@ -215,8 +215,8 @@
                                 <label>Entreprises précédentes</label>
                                 <div class="tag-container" data-category="professional" data-founder-id="{{ loop.index0 }}">
                                     <div class="tag-display" id="professional-tags-{{ loop.index0 }}">
-                                        {% if founder.get_professional_tags %}
-                                            {% for tag in founder.get_professional_tags() %}
+                                        {% if founder.professional_tags %}
+                                            {% for tag in founder.professional_tags %}
                                             <span class="tag" data-tag="{{ tag.name }}" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
                                                 {{ tag.name }}
                                                 <button type="button" class="tag-remove" onclick="removeTag(this)">×</button>
@@ -525,7 +525,10 @@ function setupFounderAutocomplete() {
             if (!list.contains(e.target) && list.previousElementSibling !== e.target) {
                 list.style.display = 'none';
                 const card = list.closest('.card');
-                if (card) card.style.zIndex = '';
+                if (card) {
+                    card.style.zIndex = '';
+                    card.style.overflow = '';
+                }
             }
         });
     });
@@ -546,7 +549,10 @@ function onFounderInput(inputEl) {
                 if (hidden) hidden.value = item.value;
                 list.style.display = 'none';
                 const c = list.closest('.card');
-                if (c) c.style.zIndex = '';
+                if (c) {
+                    c.style.zIndex = '';
+                    c.style.overflow = '';
+                }
             });
             return;
         }
@@ -559,7 +565,10 @@ function onFounderInput(inputEl) {
                     if (hidden) hidden.value = item.value;
                     list.style.display = 'none';
                     const c = list.closest('.card');
-                    if (c) c.style.zIndex = '';
+                    if (c) {
+                        c.style.zIndex = '';
+                        c.style.overflow = '';
+                    }
                 });
             })
             .catch(() => { if (list) list.style.display = 'none'; });
@@ -575,7 +584,10 @@ function onFounderInput(inputEl) {
                 if (hidden) hidden.value = item.value;
                 list.style.display = 'none';
                 const c = list.closest('.card');
-                if (c) c.style.zIndex = '';
+                if (c) {
+                    c.style.zIndex = '';
+                    c.style.overflow = '';
+                }
             });
         } catch (e) {
             // ignore
@@ -589,7 +601,10 @@ function renderAutocompleteList(listEl, items, onClick) {
     if (!items || items.length === 0) {
         listEl.style.display = 'none';
         const c = listEl.closest('.card');
-        if (c) c.style.zIndex = '';
+        if (c) {
+            c.style.zIndex = '';
+            c.style.overflow = '';
+        }
         return;
     }
     items.forEach(it => {
@@ -601,7 +616,10 @@ function renderAutocompleteList(listEl, items, onClick) {
     });
     listEl.style.display = 'block';
     const c = listEl.closest('.card');
-    if (c) c.style.zIndex = '1000';
+    if (c) {
+        c.style.zIndex = '10000';
+        c.style.overflow = 'visible';
+    }
 }
 
 // --- Autocomplete for tags ---
@@ -626,7 +644,10 @@ function onTagInput(input) {
                 input.value = '';
                 list.style.display = 'none';
                 const c = list.closest('.card');
-                if (c) c.style.zIndex = '';
+                if (c) {
+                    c.style.zIndex = '';
+                    c.style.overflow = '';
+                }
             });
             return;
         }
@@ -639,7 +660,10 @@ function onTagInput(input) {
                     input.value = '';
                     list.style.display = 'none';
                     const c = list.closest('.card');
-                    if (c) c.style.zIndex = '';
+                    if (c) {
+                        c.style.zIndex = '';
+                        c.style.overflow = '';
+                    }
                 });
             })
             .catch(() => { if (list) list.style.display = 'none'; });
@@ -655,7 +679,10 @@ function onTagInput(input) {
                 input.value = '';
                 list.style.display = 'none';
                 const c = list.closest('.card');
-                if (c) c.style.zIndex = '';
+                if (c) {
+                    c.style.zIndex = '';
+                    c.style.overflow = '';
+                }
             });
         } catch (e) {
             // ignore

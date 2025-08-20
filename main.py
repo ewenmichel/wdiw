@@ -1,21 +1,20 @@
 # main.py - Debug version with better error handling
-from fastapi import FastAPI, Depends, HTTPException, Request, Form
+from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Optional
 import json
 import traceback
 
 # Fixed imports
-import crud
 import models
 import database
+import neo4j_crud as crud
 
 app = FastAPI(title="Tech Companies Database", version="1.0.0")
 
-# Create tables
-database.create_tables()
+# Initialize Neo4j constraints
+database.init_neo4j_constraints()
 
 # Templates
 templates = Jinja2Templates(directory="templates")
@@ -123,22 +122,21 @@ def insert_sample_data():
         traceback.print_exc()
 
 # API Routes with better error handling
-@app.get("/api/companies", response_model=List[models.Company])
+@app.get("/api/companies")
 def read_companies(
     skip: int = 0, 
     limit: int = 100, 
     search: Optional[str] = None,
-    db: Session = Depends(database.get_db)
 ):
     try:
-        companies = crud.get_companies(db, skip=skip, limit=limit, search=search)
+        companies = crud.get_companies(skip=skip, limit=limit, search=search)
         return companies
     except Exception as e:
         print(f"Error reading companies: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/companies/filter", response_model=List[models.Company])
+@app.get("/api/companies/filter")
 def filter_companies_api(
     tags: Optional[str] = None,  # comma-separated tag names
     work_intensity_value: Optional[str] = None,
@@ -149,12 +147,10 @@ def filter_companies_api(
     high_profile_cmp: Optional[str] = None,  # lte/gte/eq
     remuneration_value: Optional[int] = None,
     remuneration_cmp: Optional[str] = None,  # lte/gte/eq
-    db: Session = Depends(database.get_db)
 ):
     try:
         tag_list = [t.strip() for t in tags.split(',')] if tags else None
         companies = crud.filter_companies(
-            db,
             tags=tag_list,
             work_intensity_value=work_intensity_value,
             work_intensity_cmp=work_intensity_cmp,
@@ -172,70 +168,31 @@ def filter_companies_api(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/graph/companies")
-def companies_graph(db: Session = Depends(database.get_db)):
+def companies_graph():
     try:
-        # Build nodes
-        companies = crud.get_companies(db)
-        nodes = [
-            {"id": f"company-{c.id}", "label": c.name, "type": "company"}
-            for c in companies
-        ]
-        # Build person nodes (cofounders/employees) and edges
-        persons = db.query(database.Person).all()
-        nodes += [
-            {"id": f"person-{p.id}", "label": p.name, "type": "person"}
-            for p in persons
-        ]
-        links = []
-        # founder links
-        for f in db.query(database.Founder).all():
-            if f.person_id:
-                links.append({"source": f"person-{f.person_id}", "target": f"company-{f.company_id}", "relation": "founder"})
-        # employee links
-        for e in db.query(database.Employee).all():
-            if e.person_id:
-                links.append({"source": f"person-{e.person_id}", "target": f"company-{e.company_id}", "relation": "employee"})
-        # same school/company inferred links between persons
-        # simple heuristic: same education_institution or professional_company
-        person_map = {p.id: p for p in persons}
-        founders = db.query(database.Founder).all()
-        employees = db.query(database.Employee).all()
-        def index_by(attr, items):
-            d = {}
-            for it in items:
-                key = getattr(it, attr, None)
-                if key:
-                    d.setdefault(key, []).append(it)
-            return d
-        for attr in ["education_institution", "professional_company"]:
-            for group in index_by(attr, founders + employees).values():
-                ids = [g.person_id for g in group if g.person_id]
-                for i in range(len(ids)):
-                    for j in range(i+1, len(ids)):
-                        links.append({"source": f"person-{ids[i]}", "target": f"person-{ids[j]}", "relation": attr})
-        return {"nodes": nodes, "links": links}
+        return crud.companies_graph()
     except Exception as e:
         print(f"Error creating graph: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/companies", response_model=models.Company)
-def create_company(company: models.CompanyCreate, db: Session = Depends(database.get_db)):
+@app.post("/api/companies")
+def create_company(company: models.CompanyCreate):
     try:
         print(f"Creating company: {company.name}")
-        result = crud.create_company(db=db, company=company)
-        print(f"Successfully created company with ID: {result.id}")
+        result = crud.create_company(company=company)
+        print(f"Successfully created company with ID: {result['id']}")
         return result
     except Exception as e:
         print(f"Error creating company: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/companies/{company_id}", response_model=models.Company)
-def read_company(company_id: int, db: Session = Depends(database.get_db)):
+@app.get("/api/companies/{company_id}")
+def read_company(company_id: int):
     try:
-        db_company = crud.get_company(db, company_id=company_id)
-        if db_company is None:
+        db_company = crud.get_company(company_id=company_id)
+        if not db_company:
             raise HTTPException(status_code=404, detail="Company not found")
         return db_company
     except HTTPException:
@@ -245,17 +202,14 @@ def read_company(company_id: int, db: Session = Depends(database.get_db)):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/api/companies/{company_id}", response_model=models.Company)
+@app.put("/api/companies/{company_id}")
 def update_company(
-    company_id: int, 
-    company: models.CompanyUpdate, 
-    db: Session = Depends(database.get_db)
+    company_id: int,
+    company: models.CompanyUpdate,
 ):
     try:
-        db_company = crud.update_company(db, company_id=company_id, company_update=company)
-        if db_company is None:
-            raise HTTPException(status_code=404, detail="Company not found")
-        return db_company
+        result = crud.update_company(company_id=company_id, company_update=company)
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -264,11 +218,9 @@ def update_company(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/companies/{company_id}")
-def delete_company(company_id: int, db: Session = Depends(database.get_db)):
+def delete_company(company_id: int):
     try:
-        db_company = crud.delete_company(db, company_id=company_id)
-        if db_company is None:
-            raise HTTPException(status_code=404, detail="Company not found")
+        crud.delete_company(company_id=company_id)
         return {"message": "Company deleted successfully"}
     except HTTPException:
         raise
@@ -278,15 +230,14 @@ def delete_company(company_id: int, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Tag API Routes
-@app.get("/api/tags", response_model=List[models.Tag])
+@app.get("/api/tags")
 def get_tags(
     category: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(database.get_db)
 ):
     try:
-        tags = crud.get_tags(db, category=category, skip=skip, limit=limit)
+        tags = crud.get_tags(category=category, skip=skip, limit=limit)
         return tags
     except Exception as e:
         print(f"Error getting tags: {e}")
@@ -298,25 +249,19 @@ def search_tags(
     q: str,
     category: Optional[str] = None,
     limit: int = 10,
-    db: Session = Depends(database.get_db)
 ):
     try:
-        tags = crud.search_tags(db, query=q, category=category, limit=limit)
-        return [{"name": tag.name, "category": tag.category, "color": tag.color, "usage_count": tag.usage_count} for tag in tags]
+        tags = crud.search_tags(query=q, category=category, limit=limit)
+        return [{"name": tag["name"], "category": tag["category"], "color": tag.get("color", "#64b5f6"), "usage_count": tag.get("usage_count", 0)} for tag in tags]
     except Exception as e:
         print(f"Error searching tags: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/tags", response_model=models.Tag)
-def create_tag(tag: models.TagCreate, db: Session = Depends(database.get_db)):
+@app.post("/api/tags")
+def create_tag(tag: models.TagCreate):
     try:
-        # Check if tag already exists
-        existing_tag = crud.get_tag_by_name_and_category(db, tag.name, tag.category.value)
-        if existing_tag:
-            raise HTTPException(status_code=400, detail="Tag already exists")
-        
-        result = crud.create_tag(db=db, tag=tag)
+        result = crud.create_tag(tag=tag)
         return result
     except HTTPException:
         raise
@@ -327,21 +272,20 @@ def create_tag(tag: models.TagCreate, db: Session = Depends(database.get_db)):
 
 # Person API Routes
 @app.get("/api/persons/search")
-def search_persons(q: str, limit: int = 10, db: Session = Depends(database.get_db)):
+def search_persons(q: str, limit: int = 10):
     try:
-        # Simple contains search on Person names
-        persons = db.query(database.Person).filter(database.Person.name.contains(q)).limit(limit).all()
-        return [{"id": p.id, "name": p.name} for p in persons]
+        persons = crud.search_persons(q=q, limit=limit)
+        return persons
     except Exception as e:
         print(f"Error searching persons: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/persons")
-def list_persons(limit: int = 200, db: Session = Depends(database.get_db)):
+def list_persons(limit: int = 200):
     try:
-        persons = db.query(database.Person).order_by(database.Person.name).limit(limit).all()
-        return [{"id": p.id, "name": p.name} for p in persons]
+        persons = crud.list_persons(limit=limit)
+        return persons
     except Exception as e:
         print(f"Error listing persons: {e}")
         traceback.print_exc()
@@ -349,7 +293,7 @@ def list_persons(limit: int = 200, db: Session = Depends(database.get_db)):
 
 # Web Interface Routes with better error handling
 @app.get("/", response_class=HTMLResponse)
-def read_companies_web(request: Request, db: Session = Depends(database.get_db)):
+def read_companies_web(request: Request):
     try:
         qp = request.query_params
         tags = qp.get("tags")
@@ -365,7 +309,6 @@ def read_companies_web(request: Request, db: Session = Depends(database.get_db))
         if any([tags, work_intensity_value, company_size_value, high_profile_value, remuneration_value]):
             tag_list = [t.strip() for t in tags.split(',')] if tags else None
             companies = crud.filter_companies(
-                db,
                 tags=tag_list,
                 work_intensity_value=work_intensity_value,
                 work_intensity_cmp=work_intensity_cmp,
@@ -377,7 +320,7 @@ def read_companies_web(request: Request, db: Session = Depends(database.get_db))
                 remuneration_cmp=remuneration_cmp
             )
         else:
-            companies = crud.get_companies(db)
+            companies = crud.get_companies()
         return templates.TemplateResponse("index.html", {"request": request, "companies": companies})
     except Exception as e:
         print(f"Error in web interface: {e}")
@@ -407,7 +350,6 @@ def create_company_form(
     company_size: str = Form("startup"),
     founded_year: Optional[int] = Form(None),
     last_funding: Optional[str] = Form(None),
-    db: Session = Depends(database.get_db)
 ):
     """Fallback route for form submission if JavaScript fails"""
     try:
@@ -434,8 +376,8 @@ def create_company_form(
         )
         
         # Create company
-        company = crud.create_company(db=db, company=company_data)
-        print(f"Successfully created company via form: {company.id}")
+        company = crud.create_company(company=company_data)
+        print(f"Successfully created company via form: {company['id']}")
         
         # Redirect to home page
         return RedirectResponse(url="/", status_code=303)
@@ -446,9 +388,9 @@ def create_company_form(
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)})
 
 @app.get("/companies/{company_id}/edit", response_class=HTMLResponse)
-def edit_company_form(request: Request, company_id: int, db: Session = Depends(database.get_db)):
+def edit_company_form(request: Request, company_id: int):
     try:
-        company = crud.get_company(db, company_id)
+        company = crud.get_company(company_id)
         if not company:
             raise HTTPException(status_code=404, detail="Company not found")
         return templates.TemplateResponse("form.html", {"request": request, "company": company})
@@ -460,9 +402,9 @@ def edit_company_form(request: Request, company_id: int, db: Session = Depends(d
         return templates.TemplateResponse("error.html", {"request": request, "error": str(e)})
 
 @app.get("/companies/{company_id}", response_class=HTMLResponse)
-def view_company(request: Request, company_id: int, db: Session = Depends(database.get_db)):
+def view_company(request: Request, company_id: int):
     try:
-        company = crud.get_company(db, company_id)
+        company = crud.get_company(company_id)
         if not company:
             raise HTTPException(status_code=404, detail="Company not found")
         return templates.TemplateResponse("detail.html", {"request": request, "company": company})
@@ -482,11 +424,14 @@ def error_page(request: Request):
 def graph_page(request: Request):
     return templates.TemplateResponse("graph.html", {"request": request})
 
-# Initialize sample data on startup
+# Initialize constraints on startup
 @app.on_event("startup")
 def startup_event():
     print("Starting up application...")
-    insert_sample_data()
+    try:
+        database.init_neo4j_constraints()
+    except Exception as e:
+        print(f"[neo4j] constraint init error: {e}")
     print("Application started successfully!")
 
 if __name__ == "__main__":

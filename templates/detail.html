@@ -48,8 +48,8 @@
             <div style="margin-bottom: 1.5rem;">
                 <strong style="color: #64b5f6;">Secteur:</strong>
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-                    {% if company.get_secteur_tags() %}
-                        {% for tag in company.get_secteur_tags() %}
+                    {% if company.secteur_tags %}
+                        {% for tag in company.secteur_tags %}
                             <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.8rem; font-weight: 500;">
                                 {{ tag.name }}
                             </span>
@@ -63,8 +63,8 @@
             <div style="margin-bottom: 1.5rem;">
                 <strong style="color: #64b5f6;">Core Business:</strong>
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-                    {% if company.get_core_business_tags() %}
-                        {% for tag in company.get_core_business_tags() %}
+                    {% if company.core_business_tags %}
+                        {% for tag in company.core_business_tags %}
                             <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.25rem 0.75rem; border-radius: 16px; font-size: 0.8rem; font-weight: 500;">
                                 {{ tag.name }}
                             </span>
@@ -81,10 +81,10 @@
                     High Profile: {{ company.high_profile }}/5
                 </span>
                 <span style="background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 0.5rem 1rem; border-radius: 16px; font-size: 0.9rem; font-weight: 500;">
-                    {{ company.work_intensity.title() }}
+                    {{ ((company.work_intensity | default('', true)) | string) | title }}
                 </span>
                 <span style="background: rgba(156, 39, 176, 0.2); color: #9c27b0; padding: 0.5rem 1rem; border-radius: 16px; font-size: 0.9rem; font-weight: 500;">
-                    {{ company.company_size.title() }}
+                    {{ ((company.company_size | default('', true)) | string) | title }}
                 </span>
             </div>
         </div>
@@ -106,8 +106,8 @@
                         </div>
                         
                         <!-- Background Toggle Buttons -->
-                        {% set has_education = founder.education_institution or founder.get_education_tags() %}
-                        {% set has_professional = founder.professional_company or founder.get_professional_tags() %}
+                        {% set has_education = founder.education_institution or founder.education_tags %}
+                        {% set has_professional = founder.professional_company or founder.professional_tags %}
                         
                         {% if has_education and has_professional %}
                         <div class="background-toggle" style="display: flex; gap: 0.5rem;">
@@ -140,11 +140,11 @@
                             {% endif %}
                             
                             <!-- Professional Tags -->
-                            {% if founder.get_professional_tags() %}
+                            {% if founder.professional_tags %}
                             <div style="margin-top: 0.8rem;">
                                 <strong style="color: #ff9800; font-size: 0.8rem;">Entreprises:</strong>
                                 <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem;">
-                                    {% for tag in founder.get_professional_tags() %}
+                                    {% for tag in founder.professional_tags %}
                                     <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">
                                         {{ tag.name }}
                                     </span>
@@ -175,11 +175,11 @@
                             {% endif %}
                             
                             <!-- Education Tags -->
-                            {% if founder.get_education_tags() %}
+                            {% if founder.education_tags %}
                             <div style="margin-top: 0.8rem;">
                                 <strong style="color: #4caf50; font-size: 0.8rem;">Écoles:</strong>
                                 <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem;">
-                                    {% for tag in founder.get_education_tags() %}
+                                    {% for tag in founder.education_tags %}
                                     <span style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">
                                         {{ tag.name }}
                                     </span>
@@ -309,23 +309,24 @@
             {% endif %}
         </div>
 
-        <!-- Metadata Card -->
+        <!-- Metadata Card (optional data) -->
         <div class="card">
             <h3 style="color: #64b5f6; margin-bottom: 1rem;">Métadonnées</h3>
-            
+            {% if company.created_at %}
             <div style="margin-bottom: 0.5rem;">
                 <strong style="color: #64b5f6;">Créé le:</strong><br>
-                <span style="font-size: 0.9rem; color: #9e9e9e;">
-                    {{ company.created_at.strftime('%d/%m/%Y à %H:%M') }}
-                </span>
+                <span style="font-size: 0.9rem; color: #9e9e9e;">{{ company.created_at }}</span>
             </div>
-            
+            {% endif %}
+            {% if company.updated_at %}
             <div>
                 <strong style="color: #64b5f6;">Modifié le:</strong><br>
-                <span style="font-size: 0.9rem; color: #9e9e9e;">
-                    {{ company.updated_at.strftime('%d/%m/%Y à %H:%M') }}
-                </span>
+                <span style="font-size: 0.9rem; color: #9e9e9e;">{{ company.updated_at }}</span>
             </div>
+            {% endif %}
+            {% if not company.created_at and not company.updated_at %}
+            <p style="color: #9e9e9e; font-style: italic;">Aucune métadonnée disponible</p>
+            {% endif %}
         </div>
 
         <!-- Actions Card -->

@@ -124,7 +124,7 @@
                     {% elif company.remuneration == 5 %}
                     <span style="background: #232323; color: #4caf50; border: 1px solid #4caf5099; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">💰 Overpaying</span>
                     {% endif %}
-                    {% set wi = company.work_intensity.lower() %}
+                    {% set wi = ((company.work_intensity | default('', true)) | string) | lower %}
                     {% if wi == 'chill' %}
                     <span style="background: #232323; color: #00bcd4; border: 1px solid #00bcd499; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">Chill</span>
                     {% elif wi == 'balanced' %}
@@ -134,9 +134,9 @@
                     {% elif wi == 'bourrin' %}
                     <span style="background: #232323; color: #e91e63; border: 1px solid #e91e6399; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">Bourrin</span>
                     {% else %}
-                    <span style="background: #232323; color: #fff; border: 1px solid #fff2; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">{{ company.work_intensity.title() }}</span>
+                    <span style="background: #232323; color: #fff; border: 1px solid #fff2; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">{{ ((company.work_intensity | default('', true)) | string) | title }}</span>
                     {% endif %}
-                    {% set cs = company.company_size.lower() %}
+                    {% set cs = ((company.company_size | default('', true)) | string) | lower %}
                     {% if cs == 'early' %}
                     <span style="background: #232323; color: #9c27b0; border: 1px solid #9c27b099; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">Early</span>
                     {% elif cs == 'startup' %}
@@ -146,7 +146,7 @@
                     {% elif cs == 'corp' %}
                     <span style="background: #232323; color: #9e9e9e; border: 1px solid #9e9e9e99; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">Corp</span>
                     {% else %}
-                    <span style="background: #232323; color: #fff; border: 1px solid #fff2; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">{{ company.company_size.title() }}</span>
+                    <span style="background: #232323; color: #fff; border: 1px solid #fff2; padding: 0.18rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 300; font-family: 'Inter', sans-serif;">{{ ((company.company_size | default('', true)) | string) | title }}</span>
                     {% endif %}
                 </div>
                 <div style="display: flex; gap: 1.2rem; font-size: 0.95rem; color: #888; font-weight: 300;">

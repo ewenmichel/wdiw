@@ -4,6 +4,7 @@ from sqlalchemy import or_
 import models
 import database
 import re
+from typing import Iterable
 
 def create_slug(name: str) -> str:
     """Create a URL-friendly slug from company name"""
@@ -262,6 +263,14 @@ def create_company(db: Session, company: models.CompanyCreate):
     
     db.commit()
     db.refresh(db_company)
+
+    # Sync to Neo4j
+    try:
+        if database.is_neo4j_sync_enabled():
+            _neo4j_sync_company(db, db_company)
+    except Exception as sync_err:
+        # Non-fatal: keep SQL write as source of truth
+        print(f"[neo4j] sync company failed: {sync_err}")
     return db_company
 
 def update_company(db: Session, company_id: int, company_update: models.CompanyUpdate):
@@ -418,6 +427,13 @@ def update_company(db: Session, company_id: int, company_update: models.CompanyU
     
     db.commit()
     db.refresh(db_company)
+
+    # Sync to Neo4j
+    try:
+        if database.is_neo4j_sync_enabled():
+            _neo4j_sync_company(db, db_company)
+    except Exception as sync_err:
+        print(f"[neo4j] sync company failed: {sync_err}")
     return db_company
 
 def delete_company(db: Session, company_id: int):
@@ -425,7 +441,216 @@ def delete_company(db: Session, company_id: int):
     if db_company:
         db.delete(db_company)
         db.commit()
+        try:
+            if database.is_neo4j_sync_enabled():
+                _neo4j_delete_company(company_id)
+        except Exception as sync_err:
+            print(f"[neo4j] delete company failed: {sync_err}")
     return db_company
+
+# ---------------- Neo4j Sync Helpers ---------------- #
+
+def _neo4j_sync_company(db: Session, db_company: database.Company):
+    """Upsert a Company and its relationships into Neo4j."""
+    with database.get_neo4j_session() as session:
+        # Upsert Company
+        session.run(
+            """
+            MERGE (c:Company {id: $id})
+            SET c.slug=$slug, c.name=$name, c.website=$website, c.description=$description,
+                c.sector=$sector, c.location=$location, c.high_profile=$high_profile,
+                c.remuneration=$remuneration, c.work_intensity=$work_intensity,
+                c.company_size=$company_size, c.founded_year=$founded_year, c.last_funding=$last_funding
+            """,
+            id=db_company.id,
+            slug=db_company.slug,
+            name=db_company.name,
+            website=db_company.website,
+            description=db_company.description,
+            sector=db_company.sector,
+            location=db_company.location,
+            high_profile=db_company.high_profile,
+            remuneration=db_company.remuneration,
+            work_intensity=db_company.work_intensity,
+            company_size=db_company.company_size,
+            founded_year=db_company.founded_year,
+            last_funding=db_company.last_funding,
+        )
+
+        # Sync Investors
+        investors = list(db_company.investors)
+        for inv in investors:
+            session.run(
+                """
+                MERGE (i:Investor {id: $id})
+                SET i.name=$name, i.type=$type
+                WITH i
+                MATCH (c:Company {id: $company_id})
+                MERGE (i)-[:INVESTED_IN]->(c)
+                """,
+                id=inv.id,
+                name=inv.name,
+                type=inv.type,
+                company_id=db_company.id,
+            )
+
+        # Sync Tags on company
+        for tag in list(db_company.tags):
+            session.run(
+                """
+                MERGE (t:Tag {name: $name, category: $category})
+                SET t.id=$id, t.color=$color, t.usage_count=coalesce(t.usage_count,0)
+                WITH t
+                MATCH (c:Company {id: $company_id})
+                MERGE (c)-[:HAS_TAG]->(t)
+                """,
+                id=tag.id,
+                name=tag.name,
+                category=tag.category,
+                color=tag.color,
+                company_id=db_company.id,
+            )
+
+        # Sync Founders
+        founders = db.query(database.Founder).filter(database.Founder.company_id == db_company.id).all()
+        for f in founders:
+            if not f.person_id:
+                continue
+            session.run(
+                """
+                MERGE (p:Person {id: $pid})
+                SET p.name=$pname
+                WITH p
+                MATCH (c:Company {id: $company_id})
+                MERGE (p)-[r:FOUNDER_OF]->(c)
+                SET r.title=$title,
+                    r.background_type=$background_type,
+                    r.education_institution=$education_institution,
+                    r.education_degree=$education_degree,
+                    r.education_field=$education_field,
+                    r.education_year=$education_year,
+                    r.professional_company=$professional_company,
+                    r.professional_position=$professional_position,
+                    r.professional_duration=$professional_duration,
+                    r.professional_description=$professional_description
+                """,
+                pid=f.person_id,
+                pname=f.name,
+                company_id=db_company.id,
+                title=f.title,
+                background_type=f.background_type,
+                education_institution=f.education_institution,
+                education_degree=f.education_degree,
+                education_field=f.education_field,
+                education_year=f.education_year,
+                professional_company=f.professional_company,
+                professional_position=f.professional_position,
+                professional_duration=f.professional_duration,
+                professional_description=f.professional_description,
+            )
+
+            for t in [t for t in f.tags if t.category in ("education", "professional")]:
+                session.run(
+                    """
+                    MERGE (t:Tag {name: $name, category: $category})
+                    SET t.id=$id, t.color=$color
+                    WITH t
+                    MATCH (p:Person {id: $pid})
+                    MERGE (p)-[:HAS_TAG]->(t)
+                    """,
+                    id=t.id,
+                    name=t.name,
+                    category=t.category,
+                    color=t.color,
+                    pid=f.person_id,
+                )
+
+        # Sync Employees
+        employees = db.query(database.Employee).filter(database.Employee.company_id == db_company.id).all()
+        for e in employees:
+            if not e.person_id:
+                continue
+            session.run(
+                """
+                MERGE (p:Person {id: $pid})
+                SET p.name=$pname
+                WITH p
+                MATCH (c:Company {id: $company_id})
+                MERGE (p)-[r:EMPLOYEE_OF]->(c)
+                SET r.title=$title,
+                    r.role=$role,
+                    r.department=$department,
+                    r.career_track=$career_track,
+                    r.background_type=$background_type,
+                    r.education_institution=$education_institution,
+                    r.education_degree=$education_degree,
+                    r.education_field=$education_field,
+                    r.education_year=$education_year,
+                    r.professional_company=$professional_company,
+                    r.professional_position=$professional_position,
+                    r.professional_duration=$professional_duration,
+                    r.professional_description=$professional_description
+                """,
+                pid=e.person_id,
+                pname=e.name,
+                company_id=db_company.id,
+                title=e.title,
+                role=e.role,
+                department=e.department,
+                career_track=e.career_track,
+                background_type=e.background_type,
+                education_institution=e.education_institution,
+                education_degree=e.education_degree,
+                education_field=e.education_field,
+                education_year=e.education_year,
+                professional_company=e.professional_company,
+                professional_position=e.professional_position,
+                professional_duration=e.professional_duration,
+                professional_description=e.professional_description,
+            )
+
+            for t in [t for t in e.tags if t.category in ("education", "professional")]:
+                session.run(
+                    """
+                    MERGE (t:Tag {name: $name, category: $category})
+                    SET t.id=$id, t.color=$color
+                    WITH t
+                    MATCH (p:Person {id: $pid})
+                    MERGE (p)-[:HAS_TAG]->(t)
+                    """,
+                    id=t.id,
+                    name=t.name,
+                    category=t.category,
+                    color=t.color,
+                    pid=e.person_id,
+                )
+
+        # Sync Company relations
+        relations = db.query(database.CompanyRelation).filter(
+            (database.CompanyRelation.parent_id == db_company.id) |
+            (database.CompanyRelation.child_id == db_company.id)
+        ).all()
+        for r in relations:
+            session.run(
+                """
+                MATCH (p:Company {id: $parent_id})
+                MATCH (c:Company {id: $child_id})
+                MERGE (p)-[rel:RELATED {type: $type}]->(c)
+                """,
+                parent_id=r.parent_id,
+                child_id=r.child_id,
+                type=r.relation_type,
+            )
+
+
+def _neo4j_delete_company(company_id: int):
+    with database.get_neo4j_session() as session:
+        session.run(
+            """
+            MATCH (c:Company {id: $id}) DETACH DELETE c
+            """,
+            id=company_id,
+        )
 
 # Tag CRUD operations
 def get_tags(db: Session, category: str = None, skip: int = 0, limit: int = 100):
@@ -569,3 +794,18 @@ def propagate_founder_profile(db: Session, source_founder: database.Founder):
                     other.tags.append(t)
 
     db.flush()
+
+
+def sync_all_to_neo4j(db: Session):
+    """Full backfill of existing SQL data into Neo4j."""
+    if not database.is_neo4j_sync_enabled():
+        return {"synced": 0}
+    companies = db.query(database.Company).all()
+    count = 0
+    for c in companies:
+        try:
+            _neo4j_sync_company(db, c)
+            count += 1
+        except Exception as e:
+            print(f"[neo4j] sync failed for company {c.id} - {c.name}: {e}")
+    return {"synced": count}
