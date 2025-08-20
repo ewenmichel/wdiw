@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from typing import Optional
 import json
 import traceback
@@ -27,8 +28,13 @@ app = FastAPI(title="Tech Companies Database", version="1.0.0")
 database.init_neo4j_constraints()
 
 # Templates (absolute path so it works from any CWD)
-TEMPLATES_DIR = str(pathlib.Path(__file__).resolve().parents[1] / "templates")
+ROOT_DIR = pathlib.Path(__file__).resolve().parents[1]
+TEMPLATES_DIR = str(ROOT_DIR / "templates")
+STATIC_DIR = str(ROOT_DIR / "static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+# Serve static files (crystals, fonts, etc.)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Sample data insertion with error handling
 def insert_sample_data():
@@ -432,6 +438,15 @@ def error_page(request: Request):
 @app.get("/graph", response_class=HTMLResponse)
 def graph_page(request: Request):
     return templates.TemplateResponse("graph.html", {"request": request})
+
+# Manifesto page
+@app.get("/manifesto", response_class=HTMLResponse)
+def manifesto_page(request: Request):
+    return templates.TemplateResponse("manifesto.html", {"request": request})
+
+@app.get("/manifesto.html", response_class=HTMLResponse)
+def manifesto_page_alias(request: Request):
+    return templates.TemplateResponse("manifesto.html", {"request": request})
 
 # Initialize constraints on startup
 @app.on_event("startup")

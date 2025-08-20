@@ -8,7 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap');
         @font-face {
             font-family: 'realifefont';
-            src: url('realife_font.ttf') format('truetype');
+            src: url('/static/fonts/realife_font.ttf') format('truetype');
             font-display: swap;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -219,7 +219,7 @@
                 
                 try {
                     // Try to load SVG
-                    const res = await fetch(`crystals/svgs/crystal-${num}.svg`);
+                    const res = await fetch(`/static/crystals/svgs/crystal-${num}.svg`);
                     if (res.ok) {
                         const svgText = await res.text();
                         const wrapper = document.createElement('div');
@@ -256,7 +256,7 @@
                     // Fallback to img tag
                     console.warn(`Using fallback for crystal-${num}.svg:`, error.message);
                     const img = document.createElement('img');
-                    img.src = `crystals/svgs/crystal-${num}.svg`;
+                    img.src = `/static/crystals/svgs/crystal-${num}.svg`;
                     img.alt = `Crystal ${num}`;
                     crystal.appendChild(img);
                 }
@@ -273,7 +273,7 @@
         });
     </script>
     <link rel="prefetch" href="index.html" as="document">
-    <link rel="prefetch" href="crystals/svgs/crystal-1.svg" as="image">
+    <link rel="prefetch" href="/static/crystals/svgs/crystal-1.svg" as="image">
 </head>
 <body>
     <div class="fade-bg"></div>
